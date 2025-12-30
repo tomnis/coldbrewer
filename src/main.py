@@ -1,6 +1,8 @@
+import time
+
 from config import *
 from fastapi import FastAPI
-from typing import Tuple
+from typing import Union, Tuple
 
 from scale import Scale
 from valve import Valve
@@ -34,22 +36,16 @@ def read_weight():
     units = scale.get_units()
     return {"weight": weight, "battery_pct": battery_pct, "units": units}  # Placeholder value in grams
 
-@app.post("/valve/step_forward")
-def step_forward():
-    valve.step_forward()
-    return {"status": "stepped forward"}  # Placeholder response
+@app.post("/valve/forward/{num_steps}")
+def step_forward(num_steps: int=1, q: str | None = None):
+    for i in range(num_steps):
+        valve.step_forward()
+        time.sleep(0.1)
+    return {"status": f"stepped forward {num_steps} step(s)"}  # Placeholder response
 
-@app.post("/valve/step_backward")
-def step_backward():
-    valve.step_backward()
-    return {"status": "stepped backward"}  # Placeholder response
-
-# TODO probably want to move breadcrumbs clientside and have an endpoint that steps a certain number of times
-@app.post("/valve/return_to_start")
-def return_to_start():
-    valve.return_to_start()
-    return {"status": "returned to start"}  # Placeholder response
-
-
-
-
+@app.post("/valve/backward/{num_steps}")
+def step_backward(num_steps: int=1, q: Union[str, None] = None):
+    for i in range(num_steps):
+        valve.step_backward()
+        time.sleep(0.1)
+    return {"status": f"stepped backward {num_steps} step(s)"}  # Placeholder response
