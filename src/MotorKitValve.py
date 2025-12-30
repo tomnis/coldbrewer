@@ -16,6 +16,9 @@ class MotorKitValve(Valve):
         else:
             raise ValueError("motor_number must be 1 or 2")
 
+    def acquire(self):
+        pass
+
     def flip_direction(self, direction):
         if direction is stepper.FORWARD:
             return stepper.BACKWARD

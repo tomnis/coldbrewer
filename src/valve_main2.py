@@ -3,6 +3,7 @@ import time
 
 from config import *
 from InfluxDBTimeSeries import InfluxDBTimeSeries
+from HttpValve import HttpValve
 
 brewer_url = COLDBREW_VALVE_URL
 
@@ -32,43 +33,6 @@ def get_current_weight():
 
     return result
 
-
-def acquire():
-    """Acquire the valve for exclusive use."""
-    response = requests.post(f"{brewer_url}/valve/acquire")
-    #print(response.json())
-    if response.status_code == 200:
-        return response.json().get("brew_id")
-    else:
-        print("Failed to acquire valve")
-
-def release(brew_id: str):
-    """Release the valve for exclusive use."""
-    response = requests.post(f"{brewer_url}/valve/release", params={"brew_id": brew_id})
-    if response.status_code == 200:
-        print("Released valve")
-    else:
-        print("Failed to release valve")
-
-def step_forward(brew_id: str):
-    """Open the valve one step."""
-    response = requests.post(f"{brewer_url}/valve/forward/1", params={"brew_id": brew_id})
-    if response.status_code == 200:
-        print("Stepped valve forward")
-    else:
-        print(response)
-        print(response.json())
-        print("Failed to step valve forward")
-
-def step_backward(brew_id: str):
-    """Close the valve one step."""
-    response = requests.post(f"{brewer_url}/valve/backward/1", params={"brew_id": brew_id})
-    if response.status_code == 200:
-        print("Stepped valve backward")
-    else:
-        print(response)
-        print("Failed to step valve backward")
-
 def main():
     """The main function of the script."""
     interval = 60
@@ -82,41 +46,39 @@ def main():
     #time.sleep(120)
     # TODO should use a enter/exit here
 
-    # TODO move starting weight here
-    cur_brew_id = acquire()
-    print("Acquired valve for brew id:", cur_brew_id)
-
     current_weight = 0
+
     #while current_weight < target_weight:
-    while True:
-        # get the current flow rate
-        print("====")
-        result = time_series.get_current_flow_rate()
-        print(f"got result: {result}")
-        if result is None:
-            print("result is none")
+    with HttpValve(brewer_url) as valve:
+        while True:
+            # get the current flow rate
+            print("====")
+            current_flow_rate = time_series.get_current_flow_rate()
+            print(f"got result: {current_flow_rate}")
+            if current_flow_rate is None:
+                print("result is none")
+                time.sleep(interval)
+                continue
+
+            elif abs(target_flow_rate - current_flow_rate) <= epsilon:
+                print("just right")
+                time.sleep(interval * 2)
+                continue
+            elif current_flow_rate <= target_flow_rate:
+                print("too slow")
+                valve.step_forward()
+            else:
+                print("too fast")
+                valve.step_backward()
+
+            current_weight = get_current_weight()
             time.sleep(interval)
-            continue
 
-        elif abs(target_flow_rate - result) <= epsilon:
-            print("just right")
-            time.sleep(interval * 2)
-            continue
-        elif result <= target_flow_rate:
-            print("too slow")
-            step_forward(cur_brew_id)
-        else:
-            print("too fast")
-            step_backward(cur_brew_id)
+        # reached target weight, fully close the valve
+        print(f"reached target weight")
+        #valve.return_to_start()
 
-        current_weight = get_current_weight()
-        time.sleep(interval)
-
-    # reached target weight, fully close the valve
-    print(f"reached target weight")
-    #valve.return_to_start()
-
-    release(cur_brew_id)
+        valve.release()
 
 
 if __name__ == "__main__":

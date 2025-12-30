@@ -6,6 +6,11 @@ class Valve(ABC):
         self._breadcrumbs = dict()
 
     @abstractmethod
+    def acquire(self):
+        """Acquire the valve for use."""
+        pass
+
+    @abstractmethod
     def release(self):
         """Release the valve."""
         pass
@@ -36,6 +41,9 @@ class MockValve(Valve):
     def __init__(self):
         super().__init__()
         self.position = 0  # Track the current position of the valve
+
+    def acquire(self):
+        print("[Mock] Valve acquired.")
 
     def release(self):
         print("[Mock] Valve released.")

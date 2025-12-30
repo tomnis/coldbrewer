@@ -3,6 +3,8 @@ from config import *
 from MotorKitValve import MotorKitValve
 from InfluxDBTimeSeries import InfluxDBTimeSeries
 
+from HttpValve import HttpValve
+
 url = COLDBREW_INFLUXDB_URL
 org = COLDBREW_INFLUXDB_ORG
 bucket = COLDBREW_INFLUXDB_BUCKET
@@ -36,7 +38,7 @@ def main():
     #interval = 0.5
     # target total weight, don't bother taring
     #target_weight = 100 #1137
-    target_weight = 1137
+    target_weight = 1337
 
     # sleep to let the initial saturation drain
     # TODO should add a param for this
@@ -46,34 +48,35 @@ def main():
 
     current_weight = 0
 
-    #while current_weight < target_weight:
-    while True:
-        # get the current flow rate
-        print("====")
-        result = time_series.get_current_flow_rate()
-        print(f"got result: {result}")
-        if result is None:
-            print("result is none")
+    with HttpValve() as valve:
+        #while current_weight < target_weight:
+        while True:
+            # get the current flow rate
+            print("====")
+            current_flow_rate = time_series.get_current_flow_rate()
+            print(f"got result: {current_flow_rate}")
+            if current_flow_rate is None:
+                print("result is none")
+                time.sleep(interval)
+                continue
+
+            elif abs(target_flow_rate - current_flow_rate) <= epsilon:
+                print("just right")
+                time.sleep(interval * 2)
+                continue
+            elif current_flow_rate <= target_flow_rate:
+                print("too slow")
+                valve.step_forward()
+            else:
+                print("too fast")
+                valve.step_backward()
+
+            current_weight = get_current_weight()
             time.sleep(interval)
-            continue
 
-        elif abs(target_flow_rate - result) <= epsilon:
-            print("just right")
-            time.sleep(interval * 2)
-            continue
-        elif result <= target_flow_rate:
-            print("too slow")
-            valve.step_forward()
-        else:
-            print("too fast")
-            valve.step_backward()
-
-        current_weight = get_current_weight()
-        time.sleep(interval)
-
-    # reached target weight, fully close the valve
-    print(f"reached target weight")
-    valve.return_to_start()
+        # reached target weight, fully close the valve
+        print(f"reached target weight")
+        valve.return_to_start()
 
 
 
