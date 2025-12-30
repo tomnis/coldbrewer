@@ -12,7 +12,7 @@ class LunarScale(Scale):
 
     def __init__(self, mac_address: str):
         self.mac_address: str = mac_address
-        self.scale: AcaiaScale = self.connect()
+        self.scale: AcaiaScale = AcaiaScale(mac_address)
 
     @property
     def connected(self) -> bool:
@@ -21,9 +21,7 @@ class LunarScale(Scale):
     # TODO could probably do this in __enter__ ?
     def connect(self):
         print(f"Connecting to Lunar scale at MAC {self.mac_address}...")
-        scale = AcaiaScale(mac=self.mac_address)
-        scale.connect()
-        return scale
+        self.scale.connect()
 
 
     def disconnect(self):
