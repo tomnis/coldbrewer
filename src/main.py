@@ -28,7 +28,7 @@ def initialize_hardware() -> Tuple[Scale, Valve]:
     return s, v
 
 scale, valve = initialize_hardware()
-brew_id = None
+cur_brew_id = None
 
 app = FastAPI()
 
@@ -43,47 +43,46 @@ def read_weight():
     units = scale.get_units()
     return {"weight": weight, "battery_pct": battery_pct, "units": units}  # Placeholder value in grams
 
-
-class FilterParams(BaseModel):
+class MatchBrewId(BaseModel):
     brew_id: str
     @validator('brew_id')
     def brew_id_must_match(cls, v):
-        if ' ' not in v:
-            raise ValueError('must contain a space')
+        print(f"cur brew id: {cur_brew_id}")
+        if cur_brew_id is None:
+            raise ValueError('no brew_id in progress')
+        elif v != cur_brew_id:
+            raise ValueError('wrong brew_id')
         return v.title()
 
-
-
+#### VALVE ENDPOINTS ####
 @app.post("/valve/acquire")
 def acquire_valve(q: str | None = None):
-    global brew_id
-    if brew_id is None:
+    global cur_brew_id
+    if cur_brew_id is None:
         new_id = str(uuid.uuid4())
-        brew_id = new_id
+        cur_brew_id = new_id
         return {"status": "valve acquired", "brew_id": new_id}  # Placeholder response
     else:
-        print(f"brew id {brew_id} already acquired")
+        print(f"brew id {cur_brew_id} already acquired")
         return {"status": "valve already acquired"}  # Placeholder response
-
-
 
 @app.post("/valve/release")
 # TODO accept release brew id and verify matches
-def release_valve(q: str | None = None):
-    global brew_id
-    old_id = brew_id
-    brew_id = None
+def release_valve(brew_id: Annotated[MatchBrewId, Query()]):
+    global cur_brew_id
+    old_id = cur_brew_id
+    cur_brew_id = None
     return {"status": f"valve brew id ${old_id} released"}  # Placeholder response
 
 
 
-# TODO should only allow stepping if brew_id is set
 @app.post("/valve/forward/{num_steps}")
 def step_forward(
         num_steps: Annotated[int, Path(title="number of steps on stepper motor", ge=min_steps, le=max_steps)],
-        q: Annotated[str | None, Query(max_length=50)] = None,
+        brew_id: Annotated[MatchBrewId, Query()],
 ):
-    print(f"query param: q={q}")
+    #print(f"cur brew id: {cur_brew_id}")
+    #print(f"query param: q={brew_id}")
     for i in range(num_steps):
         valve.step_forward()
         time.sleep(0.1)
@@ -92,9 +91,10 @@ def step_forward(
 @app.post("/valve/backward/{num_steps}")
 def step_backward(
         num_steps: Annotated[int, Path(title="number of steps on stepper motor", ge=min_steps, le=max_steps)],
-        q: Annotated[str | None, Query(alias="item-query")] = None,
+        brew_id: Annotated[MatchBrewId, Query()],
 ):
-    print(q)
+    #print(f"cur brew id: {cur_brew_id}")
+    #print(f"query param: q={brew_id}")
     for i in range(num_steps):
         valve.step_backward()
         time.sleep(0.1)

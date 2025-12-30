@@ -58,8 +58,8 @@ class MotorKitValve(Valve):
             self.step(opp)
 
         # TODO have an opportunity here to reset breadcrumbs or do any sanity checks
-        print("returned to start")
         print(self.breadcrumbs)
+        print("returned to start")
         self.reset_breadcrumbs()
         self.release()
 
