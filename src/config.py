@@ -6,5 +6,5 @@ COLDBREW_INFLUXDB_TOKEN = os.environ['COLDBREW_INFLUXDB_TOKEN']
 COLDBREW_INFLUXDB_URL = os.environ['COLDBREW_INFLUXDB_URL']
 COLDBREW_INFLUXDB_ORG = os.environ['COLDBREW_INFLUXDB_ORG']
 
-_bucket =
-COLDBREW_INFLUXDB_BUCKET = os.getenv('COLDBREW_INFLUXDB_BUCKET', 'coldbrew') if COLDBREW_IS_PROD else')
+# if this is ever changed, need to also change grafana dashboard queries
+COLDBREW_INFLUXDB_BUCKET = os.getenv('COLDBREW_INFLUXDB_BUCKET', 'coldbrew') if COLDBREW_IS_PROD else os.getenv('COLDBREW_INFLUXDB_BUCKET', 'coldbrew') + '-dev'

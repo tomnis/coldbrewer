@@ -8,20 +8,20 @@ import time
 import influxdb_client
 import os
 from config import *
-
+from src.LunarScale import LunarScale
 
 # TODO this should be async
-scale=AcaiaScale(mac=COLDBREW_SCALE_MAC_ADDRESS)
+scale=LunarScale(COLDBREW_SCALE_MAC_ADDRESS)
 scale.connect()
 
 # battery value in percent
-print("battery", scale.battery)
+print("battery", scale.get_battery_percentage())
 
 # scale units is 'grams' or 'ounces'
-print("units", scale.units)
+print("units", scale.get_units())
 
 # minutes of idle before auto-off
-print("auto-off", scale.auto_off)
+print("auto-off", scale.get_auto_off())
 
 org = COLDBREW_INFLUXDB_ORG
 bucket_name = COLDBREW_INFLUXDB_BUCKET
@@ -43,10 +43,10 @@ else:
 
 @retry(tries=10, delay=2)
 def write_scale_data(scale, client):
-    weight = scale.weight
-    print(scale.weight) # this is the property we can use to read the weigth in realtime
+    weight = scale.get_weight()
+    print(weight) # this is the property we can use to read the weigth in realtime
 
-    p = Point("coldbrew").field("weight_grams", weight).field("battery_pct", scale.battery)
+    p = Point("coldbrew").field("weight_grams", weight).field("battery_pct", scale.get_battery_percentage())
     client = InfluxDBClient(url=COLDBREW_INFLUXDB_URL, token=COLDBREW_INFLUXDB_TOKEN, org=org, timeout=30_000)
     # TODO this should be async
     write_api = client.write_api(write_options=SYNCHRONOUS)
@@ -61,7 +61,8 @@ while(True):
     # check if the scale is still connected, perhaps it was turned off?
     # TODO there should be some more error handling around this
     if not scale.connected:
-        break
+        scale.connect()
+
     # TODO should reconnect influxdbclient
 
 scale.disconnect()

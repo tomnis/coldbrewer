@@ -1,0 +1,45 @@
+from pyacaia import AcaiaScale
+from pyacaia import *
+import pyacaia
+
+from src.scale import Scale
+
+
+class LunarScale(Scale):
+
+
+
+
+    def __init__(self, mac_address: str):
+        self.mac_address: str = mac_address
+        self.scale: AcaiaScale = self.connect()
+
+    @property
+    def connected(self) -> bool:
+        return self.scale.connected
+
+    # TODO could probably do this in __enter__ ?
+    def connect(self):
+        scale = AcaiaScale(mac=self.mac_address)
+        scale.connect()
+        return scale
+
+
+    def disconnect(self):
+        self.scale.disconnect()
+
+
+    def get_weight(self) -> float:
+        # Logic to get weight in grams from the Lunar scale
+        return self.scale.weight
+
+    def get_units(self) -> str:
+        # Logic to get units from the Lunar scale
+        return self.scale.units
+
+    def get_battery_percentage(self) -> float:
+        # Logic to get battery percentage from the Lunar scale
+        return self.scale.battery
+
+    def get_auto_off(self) -> int:
+        return self.scale.auto_off
