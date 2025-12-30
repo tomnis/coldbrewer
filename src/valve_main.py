@@ -1,64 +1,34 @@
 import time
-from influxdb_client import InfluxDBClient, Point
 from config import *
 from MotorKitValve import MotorKitValve
+from src.InfluxDBTimeSeries import InfluxDBTimeSeries
 
+url = COLDBREW_INFLUXDB_URL
 org = COLDBREW_INFLUXDB_ORG
-bucket_name = COLDBREW_INFLUXDB_BUCKET
+bucket = COLDBREW_INFLUXDB_BUCKET
 token = COLDBREW_INFLUXDB_TOKEN
-client = InfluxDBClient(url=COLDBREW_INFLUXDB_URL, token=token, org=org, timeout=30_000)
+time_series = InfluxDBTimeSeries(url=url, token=token, org=org, bucket=bucket)
 
 target_flow_rate = 0.05
 epsilon = 0.008
-
 
 initial_weight = 0
 is_first_time = True
 
 valve = MotorKitValve(1)
 
-def get_current_weight(influx_client, org):
+def get_current_weight():
     # TODO don't use global
     global initial_weight
     global is_first_time
 
-    query_api = client.query_api()
-    query = 'from(bucket: "coldbrew")\
-            |> range(start: -10s)\
-            |> filter(fn: (r) => r._measurement == "coldbrew" and r._field == "weight_grams")'
-    tables = query_api.query(org=org, query=query)
-    for table in tables:
-        for record in table.records:
-            print(f"Time: {record.get_time()}, Value: {record.get_value()}")
-    result = tables[-1].records[-1]
-
+    result = time_series.get_current_flow_rate()
     # track our starting weight to derive a delta of when we should stop
     if is_first_time:
         is_first_time = False
         initial_weight = result
 
-    return result.get_value()
-
-def get_flow_rate(influx_client, org):
-    query_api = client.query_api()
-    query = 'import "experimental/aggregate"\
-    from(bucket: "coldbrew")\
-      |> range(start: -2m)\
-      |> filter(fn: (r) => r._measurement == "coldbrew" and r._field == "weight_grams")\
-      |> aggregate.rate(every: 1m, unit: 1s)'
-    tables = query_api.query(org=org, query=query)
-    for table in tables:
-        for record in table.records:
-            print(f"Time: {record.get_time()}, Value: {record.get_value()}")
-
-    #results = [x.get_value() for x in tables[-1].records[-3:]]
-    #results = [x for x in results if x is not None]
-    result = tables[-1].records[-2]
-    #print(result)
-
-    #return mean(results)
-    return result.get_value()
-
+    return result
 
 def main():
     """The main function of the script."""
@@ -68,11 +38,9 @@ def main():
     #target_weight = 100 #1137
     target_weight = 1137
 
-
     # sleep to let the initial saturation drain
     # TODO should add a param for this
     #time.sleep(120)
-
 
     # TODO move starting weight here
 
@@ -81,7 +49,7 @@ def main():
     while current_weight < target_weight:
         # get the current flow rate
         print("====")
-        result = get_flow_rate(client, org)
+        result = time_series.get_current_flow_rate()
         print(f"got result: {result}")
         if result is None:
             print("result is none")
@@ -100,7 +68,7 @@ def main():
             valve.step_backward()
 
         time.sleep(interval)
-        current_weight = get_current_weight(client, org)
+        current_weight = get_current_weight()
 
     # reached target weight, fully close the valve
     print(f"reached target weight")
