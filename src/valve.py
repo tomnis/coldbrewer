@@ -38,17 +38,17 @@ class MockValve(Valve):
         self.position = 0  # Track the current position of the valve
 
     def release(self):
-        print("Valve released.")
+        print("[Mock] Valve released.")
 
     def step_forward(self):
         self.position += 1
-        print(f"Stepped forward to position {self.position}.")
+        print(f"[Mock] Stepped forward to position {self.position}.")
 
     def step_backward(self):
         self.position -= 1
-        print(f"Stepped backward to position {self.position}.")
+        print(f"[Mock] Stepped backward to position {self.position}.")
 
     def return_to_start(self):
-        print(f"Returning to start from position {self.position}.")
+        print(f"[Mock] Returning to start from position {self.position}.")
         self.position = 0
-        print("Returned to start position 0.")
+        print("[Mock] Returned to start position 0.")

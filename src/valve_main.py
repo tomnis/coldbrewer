@@ -46,7 +46,8 @@ def main():
 
     current_weight = 0
 
-    while current_weight < target_weight:
+    #while current_weight < target_weight:
+    while True:
         # get the current flow rate
         print("====")
         result = time_series.get_current_flow_rate()
