@@ -7,7 +7,7 @@ import pyacaia
 import time
 import influxdb_client
 import os
-from constants import *
+from config import *
 
 
 # TODO this should be async

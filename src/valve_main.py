@@ -5,7 +5,7 @@ from influxdb_client import InfluxDBClient, Point
 import os
 import math
 from statistics import mean
-from constants import *
+from config import *
 
 org = COLDBREW_INFLUXDB_ORG
 bucket_name = COLDBREW_INFLUXDB_BUCKET
@@ -22,6 +22,10 @@ is_first_time = True
 
 
 def get_current_weight(influx_client, org):
+    # TODO don't use global
+    global initial_weight
+    global is_first_time
+
     query_api = client.query_api()
     query = 'from(bucket: "coldbrew")\
             |> range(start: -10s)\
