@@ -43,6 +43,7 @@ async def lifespan(app: FastAPI):
     # Clean up the ML models and release the resources
     print("Shutting down, disconnecting scale...")
     scale.disconnect()
+    valve.release()
     print("Shutting down, disconnected scale...")
 
 app = FastAPI(lifespan=lifespan)
@@ -59,6 +60,14 @@ def read_weight():
     battery_pct = scale.get_battery_percentage()
     units = scale.get_units()
     return {"weight": weight, "battery_pct": battery_pct, "units": units}  # Placeholder value in grams
+
+
+@app.post("/scale/refresh")
+def refresh_scale_connection():
+    scale.disconnect()
+    time.sleep(5.0)
+    scale.connect()
+    return {"status": "scale connection refreshed"}  # Placeholder response
 
 class MatchBrewId(BaseModel):
     brew_id: str
