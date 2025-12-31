@@ -34,9 +34,6 @@ scale, valve = initialize_hardware()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    if not scale.connected:
-        print("Connecting to scale...")
-        scale.connect()
     print("server startup complete")
     yield
     scale.disconnect()
