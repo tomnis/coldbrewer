@@ -1,4 +1,5 @@
 import asyncio
+import logging
 import uuid
 import time
 
@@ -10,6 +11,9 @@ from typing import Annotated
 from ..base.config import *
 from ..base.scale import AbstractScale
 from ..base.valve import AbstractValve
+from ..base.time_series import AbstractTimeSeries
+from ..base.InfluxDBTimeSeries import InfluxDBTimeSeries
+from config import *
 
 min_steps = 1
 max_steps = 16
@@ -17,7 +21,6 @@ cur_brew_id = None
 
 # TODO dependency injection
 
-# TODO rename to create
 def create_scale() -> AbstractScale:
     if COLDBREW_IS_PROD:
         print("Initializing production scale...")
@@ -42,12 +45,20 @@ def create_valve() -> AbstractValve:
     return v
 
 
-def create_time_series() -> TimeSeries:
-    ts =
+def create_time_series() -> AbstractTimeSeries:
+    print("Initializing InfluxDB time series...")
+    ts: AbstractTimeSeries = InfluxDBTimeSeries(
+        url=COLDBREW_INFLUXDB_URL,
+        token=COLDBREW_INFLUXDB_TOKEN,
+        org=COLDBREW_INFLUXDB_ORG,
+        bucket=COLDBREW_INFLUXDB_BUCKET,
+    )
+    return ts
 
 
 scale = create_scale()
 valve = create_valve()
+time_series = create_time_series()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -83,8 +94,6 @@ def read_scale():
     return get_scale_status()
 
 
-
-
 #### VALVE ENDPOINTS ####
 class MatchBrewId(BaseModel):
     brew_id: str
@@ -99,14 +108,17 @@ class MatchBrewId(BaseModel):
 
 
 # Scale task that records data every interval
-async def print_task(s):
+async def collect_scale_data_task(brew_id, s):
     global cur_brew_id
-    while cur_brew_id is not None:
-        items = scale.get_weight()
-        print(f"scale weight: {items}")
-        weight = items["weight"]
-
-        print('Hello')
+    while brew_id is not None and brew_id == cur_brew_id:
+        scale_state = get_scale_status()
+        # print(f"Scale state: {scale_state}")
+        weight = scale_state.get("weight")
+        battery_pct = scale_state.get("battery_pct")
+        if weight is not None and battery_pct is not None:
+            print(f"Brew ID: (writing influxdb data) {cur_brew_id} Weight: {weight}, Battery: {battery_pct}%")
+            # TODO could add a brew_id label here
+            time_series.write_scale_data(weight, battery_pct)
         await asyncio.sleep(s)
 
 @app.post("/brew/acquire")
@@ -116,16 +128,24 @@ async def start_brew():
         new_id = str(uuid.uuid4())
         cur_brew_id = new_id
         # start a scale thread
-        asyncio.create_task(print_task(5))
+        asyncio.create_task(collect_scale_data_task(cur_brew_id, COLDBREW_SCALE_READ_INTERVAL))
         return {"status": "valve acquired", "brew_id": new_id}  # Placeholder response
     else:
-        print(f"brew id {cur_brew_id} already acquired")
+        # print(f"brew id {cur_brew_id} already acquired")
         return {"status": "valve already acquired"}  # Placeholder response kkk
 
 @app.post("/brew/release")
 async def release_brew(brew_id: Annotated[MatchBrewId, Query()]):
     global cur_brew_id
+    global scale
+
     old_id = cur_brew_id
+    valve.return_to_start()
+    time.sleep(1)
+    valve.release()
+
+    scale.disconnect()
+    scale = None
     cur_brew_id = None
     return {"status": f"valve brew id ${old_id} released"}  # Placeholder response
 
@@ -137,10 +157,17 @@ async def end_brew():
     return {"status": f"valve brew id ${old_id} killed"}  # Placeholder response
 
 
+@app.get("/brew/flow_rate")
+def read_flow_rate():
+    flow_rate = time_series.get_current_flow_rate()
+    return {"brew_id": cur_brew_id, "flow_rate": flow_rate}
+
 
 
 @app.get("/brew/status")
 def brew_status():
+    # TODO include current flowrate here
+    # TODO include elapsed time
     global cur_brew_id
     if cur_brew_id is None:
         return {"status": "no brew in progress"}
@@ -153,7 +180,7 @@ def brew_status():
 
 
 
-@app.post("/valve/forward/{num_steps}")
+@app.post("/brew/valve/forward/{num_steps}")
 def step_forward(
         num_steps: Annotated[int, Path(title="number of steps on stepper motor", ge=min_steps, le=max_steps)],
         brew_id: Annotated[MatchBrewId, Query()],
@@ -165,7 +192,7 @@ def step_forward(
         time.sleep(0.1)
     return {"status": f"stepped forward {num_steps} step(s)"}  # Placeholder response
 
-@app.post("/valve/backward/{num_steps}")
+@app.post("/brew/valve/backward/{num_steps}")
 def step_backward(
         num_steps: Annotated[int, Path(title="number of steps on stepper motor", ge=min_steps, le=max_steps)],
         brew_id: Annotated[MatchBrewId, Query()],

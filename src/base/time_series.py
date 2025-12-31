@@ -1,10 +1,10 @@
 from abc import ABC, abstractmethod
 
 
-class TimeSeries(ABC):
+class AbstractTimeSeries(ABC):
 
     @abstractmethod
-    def write_current_weight(self, weight: float, battery_pct: int) -> None:
+    def write_scale_data(self, weight: float, battery_pct: int) -> None:
         """Write the current weight to the time series."""
         pass
 

@@ -1,55 +1,18 @@
 import time
 
 from brewclient.config import *
-from base.config import *
-from InfluxDBTimeSeries import InfluxDBTimeSeries
-from HttpValve import HttpValve
-
-influxdb_url = COLDBREW_INFLUXDB_URL
-influxdb_org = COLDBREW_INFLUXDB_ORG
-influxdb_bucket = COLDBREW_INFLUXDB_BUCKET
-influxdb_token = COLDBREW_INFLUXDB_TOKEN
-print(f"using influxdb bucket: {influxdb_bucket}")
-time_series = InfluxDBTimeSeries(url=influxdb_url, token=influxdb_token, org=influxdb_org, bucket=influxdb_bucket)
-
-initial_weight = 0
-is_first_time = True
-
-def get_current_weight():
-    # TODO don't use global
-    global initial_weight
-    global is_first_time
-
-    result = time_series.get_current_weight()
-    # track our starting weight to derive a delta of when we should stop
-    if is_first_time:
-        is_first_time = False
-        initial_weight = result
-
-    return result
+from BrewClient import BrewClient
 
 def main():
     """The main function of the script."""
     interval = COLDBREW_VALVE_INTERVAL_SECONDS
-    #interval = 0.5
-    # target total weight, don't bother taring
-    #target_weight = 100 #1137
-    target_weight = 1137
 
-    # sleep to let the initial saturation drain
-    # TODO should add a param for this
-    #time.sleep(120)
-    # TODO should use a enter/exit here
-
-    current_weight = 0
-
-    #while current_weight < target_weight:
-    with HttpValve(COLDBREW_VALVE_URL) as valve:
+    with BrewClient(COLDBREW_VALVE_URL) as valve:
         # TODO block until current flow rate decreases
         while True:
             # get the current flow rate
             print("====")
-            current_flow_rate = time_series.get_current_flow_rate()
+            current_flow_rate = valve.get_current_flow_rate()
             print(f"got result: {current_flow_rate}")
             if current_flow_rate is None:
                 print("result is none")
@@ -69,11 +32,8 @@ def main():
                 valve.step_backward()
 
             # TODO can just check the weight from the scale here
-            current_weight = get_current_weight()
             time.sleep(interval)
 
-        # reached target weight, fully close the valve
-        print(f"reached target weight")
         # TODO investigate this further, not enough torque?
         #valve.return_to_start()
 

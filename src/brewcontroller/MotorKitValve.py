@@ -1,3 +1,5 @@
+import time
+
 from adafruit_motorkit import MotorKit
 from adafruit_motor import stepper
 from ..base.valve import AbstractValve
@@ -15,9 +17,6 @@ class MotorKitValve(AbstractValve):
             self.motor = self.kit.stepper2
         else:
             raise ValueError("motor_number must be 1 or 2")
-
-    def acquire(self):
-        pass
 
     def flip_direction(self, direction):
         if direction is stepper.FORWARD:
@@ -63,7 +62,8 @@ class MotorKitValve(AbstractValve):
         # TODO have an opportunity here to reset breadcrumbs or do any sanity checks
         print(self.breadcrumbs)
         print("returned to start")
-        self.reset_breadcrumbs()
+        self.breadcrumbs = dict()
+        time.sleep(1.0)
         self.release()
 
 

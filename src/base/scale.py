@@ -45,6 +45,7 @@ class AbstractScale(ABC):
 
 
 class MockScale(AbstractScale):
+    import random
     """A mock implementation of the Scale class for testing purposes."""
 
     def __init__(self):
@@ -67,7 +68,9 @@ class MockScale(AbstractScale):
         self._connected = False
 
     def get_weight(self) -> float:
-        return self._weight
+        w = self.random.uniform(0.0, 2000.0)
+        self._weight = w
+        return w
 
     def get_units(self) -> str:
         return self._units

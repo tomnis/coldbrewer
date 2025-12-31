@@ -4,8 +4,8 @@ import random
 
 from brewclient.config import *
 from base.config import *
-from InfluxDBTimeSeries import InfluxDBTimeSeries
-from HttpValve import HttpValve
+from src.base.InfluxDBTimeSeries import InfluxDBTimeSeries
+from BrewClient import BrewClient
 
 brewer_url = COLDBREW_VALVE_URL
 
@@ -40,7 +40,7 @@ def main():
     current_weight = 0
 
     #while current_weight < target_weight:
-    with HttpValve(brewer_url) as valve:
+    with BrewClient(brewer_url) as valve:
         for i in range(32):
             r = random.random()
             if r > 0.8:
