@@ -18,8 +18,8 @@ cur_brew_id = None
 def initialize_hardware() -> Tuple[Scale, Valve]:
     if COLDBREW_IS_PROD:
         print("Initializing production hardware...")
-        from LunarScale import LunarScale
-        from MotorKitValve import MotorKitValve
+        from ..brewcontroller.LunarScale import LunarScale
+        from ..brewcontroller.MotorKitValve import MotorKitValve
         s: Scale = LunarScale(COLDBREW_SCALE_MAC_ADDRESS)
         v: Valve = MotorKitValve()
     else:
