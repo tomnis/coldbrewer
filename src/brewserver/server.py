@@ -14,8 +14,6 @@ from time_series import AbstractTimeSeries
 from InfluxDBTimeSeries import InfluxDBTimeSeries
 from config import *
 
-min_steps = COLDBREW_VALVE_MIN_STEPS
-max_steps = COLDBREW_VALVE_MAX_STEPS
 cur_brew_id = None
 
 # TODO dependency injection
