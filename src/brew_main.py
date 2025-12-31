@@ -1,14 +1,14 @@
 import time
 
 from brewclient.config import *
-from brewclient.brew_client import BrewClient
+from brewclient.HttpBrewClient import HttpBrewClient
 
 def main():
     """The main function of the script."""
     interval = COLDBREW_VALVE_INTERVAL_SECONDS
 
     # using resource semantics to acquire and release a brew
-    with BrewClient(COLDBREW_VALVE_URL) as brew_client:
+    with HttpBrewClient(COLDBREW_VALVE_URL) as brew_client:
         # TODO block until current flow rate decreases
         while True:
             # get the current flow rate
