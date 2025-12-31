@@ -49,7 +49,7 @@ def create_time_series() -> AbstractTimeSeries:
         url=COLDBREW_INFLUXDB_URL,
         token=COLDBREW_INFLUXDB_TOKEN,
         org=COLDBREW_INFLUXDB_ORG,
-        bucket=COLDBREW_INFLUXDB_WRITE_BUCKET,
+        bucket=COLDBREW_INFLUXDB_BUCKET,
     )
     return ts
 
@@ -67,7 +67,8 @@ async def lifespan(app: FastAPI):
     """
     print("server startup complete")
     yield
-    scale.disconnect()
+    if scale is not None:
+        scale.disconnect()
     print("Shutting down, disconnected scale...")
     valve.release()
     print("Shutting down, released valve ...")
@@ -79,7 +80,7 @@ app = FastAPI(lifespan=lifespan)
 def get_scale_status() -> dict:
     # good enough to support reconnection here. we can just powercycle the scale if anything goes wrong to get back on track
     global scale
-    if not scale.connected:
+    if scale is None or not scale.connected:
         scale = create_scale()
         scale.connect()
 

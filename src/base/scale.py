@@ -20,24 +20,20 @@ class AbstractScale(ABC):
         """Connect to the scale."""
         pass
 
-
     @abstractmethod
     def disconnect(self):
         """Disconnect from the scale."""
         pass
-
 
     @abstractmethod
     def get_weight(self) -> float:
         """Get the weight in grams from the scale."""
         pass
 
-
     @abstractmethod
     def get_units(self) -> str:
         """Get the units of measurement from the scale."""
         pass
-
 
     @abstractmethod
     def get_battery_percentage(self) -> int:
@@ -70,9 +66,10 @@ class MockScale(AbstractScale):
         self._connected = False
 
     def get_weight(self) -> float:
-        w = self.random.uniform(0.0, 2000.0)
-        self._weight = w
-        return w
+        """Simulate weight changes for testing."""
+        delta = self.random.random() / 2
+        self._weight += delta
+        return self._weight
 
     def get_units(self) -> str:
         return self._units

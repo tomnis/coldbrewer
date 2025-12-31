@@ -29,8 +29,7 @@ class InfluxDBTimeSeries(AbstractTimeSeries):
 
     def get_current_weight(self) -> float:
         query_api = self.influxdb.query_api()
-        # TODO use bucket here? is convenient to read from real data
-        query = 'from(bucket: "coldbrew")\
+        query = f'from(bucket: "{self.bucket}")\
             |> range(start: -10s)\
             |> filter(fn: (r) => r._measurement == "coldbrew" and r._field == "weight_grams")'
         tables = query_api.query(org=self.org, query=query)
@@ -44,8 +43,8 @@ class InfluxDBTimeSeries(AbstractTimeSeries):
 
     def get_current_flow_rate(self) -> float:
         query_api = self.influxdb.query_api()
-        query = 'import "experimental/aggregate"\
-        from(bucket: "coldbrew")\
+        query = f'import "experimental/aggregate"\
+        from(bucket: "{self.bucket}")\
           |> range(start: -2m)\
           |> filter(fn: (r) => r._measurement == "coldbrew" and r._field == "weight_grams")\
           |> aggregate.rate(every: 1m, unit: 1s)'
