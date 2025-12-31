@@ -4,10 +4,6 @@ from influxdb_client import InfluxDBClient, Point
 from influxdb_client.client.write_api import SYNCHRONOUS
 from retry import retry
 
-# TODO might want to split this out further,
-# brewclient doesn't need to write data, only read it
-# doesn't seem like a good idea to split this into read and write abstract classes
-# what about providing a bucket name as a parameter?
 class InfluxDBTimeSeries(AbstractTimeSeries):
 
     def __init__(self, url, token, org, bucket, timeout=30_000):
@@ -26,7 +22,7 @@ class InfluxDBTimeSeries(AbstractTimeSeries):
         write_api.write(bucket=self.bucket, record=p)
 
 
-
+    @retry(tries=10, delay=2)
     def get_current_weight(self) -> float:
         query_api = self.influxdb.query_api()
         query = f'from(bucket: "{self.bucket}")\
@@ -41,6 +37,7 @@ class InfluxDBTimeSeries(AbstractTimeSeries):
         result = tables[-1].records[-1]
         return result.get_value()
 
+    @retry(tries=10, delay=2)
     def get_current_flow_rate(self) -> float:
         query_api = self.influxdb.query_api()
         query = f'import "experimental/aggregate"\
