@@ -56,6 +56,7 @@ def read_weight():
 
 
 # TODO doesn't seem like this works when reconnecting
+# TODO investigate calling scale.disconnect then scale.connect in sequence
 @app.post("/scale/refresh")
 def refresh_scale_connection():
     if scale.connected:
