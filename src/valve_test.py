@@ -11,7 +11,7 @@ brewer_url = COLDBREW_VALVE_URL
 
 influxdb_url = COLDBREW_INFLUXDB_URL
 influxdb_org = COLDBREW_INFLUXDB_ORG
-influxdb_bucket = COLDBREW_INFLUXDB_BUCKET
+influxdb_bucket = COLDBREW_INFLUXDB_WRITE_BUCKET
 influxdb_token = COLDBREW_INFLUXDB_TOKEN
 print(f"using influxdb bucket: {influxdb_bucket}")
 time_series = InfluxDBTimeSeries(url=influxdb_url, token=influxdb_token, org=influxdb_org, bucket=influxdb_bucket)

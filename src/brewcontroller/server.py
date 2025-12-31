@@ -4,7 +4,7 @@ import uuid
 import time
 
 from contextlib import asynccontextmanager
-from fastapi import FastAPI, Query, Path
+from fastapi import FastAPI, Query
 from pydantic import BaseModel, validator
 from typing import Annotated
 
@@ -15,12 +15,11 @@ from ..base.time_series import AbstractTimeSeries
 from ..base.InfluxDBTimeSeries import InfluxDBTimeSeries
 from config import *
 
-min_steps = 1
-max_steps = 16
+min_steps = COLDBREW_VALVE_MIN_STEPS
+max_steps = COLDBREW_VALVE_MAX_STEPS
 cur_brew_id = None
 
 # TODO dependency injection
-
 def create_scale() -> AbstractScale:
     if COLDBREW_IS_PROD:
         print("Initializing production scale...")
@@ -51,7 +50,7 @@ def create_time_series() -> AbstractTimeSeries:
         url=COLDBREW_INFLUXDB_URL,
         token=COLDBREW_INFLUXDB_TOKEN,
         org=COLDBREW_INFLUXDB_ORG,
-        bucket=COLDBREW_INFLUXDB_BUCKET,
+        bucket=COLDBREW_INFLUXDB_WRITE_BUCKET,
     )
     return ts
 
@@ -62,10 +61,14 @@ time_series = create_time_series()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    """
+    Lifespan context manager for FastAPI application.
+    Try our best to manage the scale connection, but restart is finicky
+    We don't need to eagerly connect to the scale here, just make sure we disconnect on shutdown
+    """
     print("server startup complete")
     yield
-    if scale.connected:
-        scale.disconnect()
+    scale.disconnect()
     print("Shutting down, disconnected scale...")
     valve.release()
     print("Shutting down, released valve ...")
@@ -150,7 +153,7 @@ async def release_brew(brew_id: Annotated[MatchBrewId, Query()]):
     return {"status": f"valve brew id ${old_id} released"}  # Placeholder response
 
 @app.post("/brew/kill")
-async def end_brew():
+async def kill_brew():
     global cur_brew_id
     old_id = cur_brew_id
     cur_brew_id = None
@@ -163,43 +166,14 @@ def read_flow_rate():
     return {"brew_id": cur_brew_id, "flow_rate": flow_rate}
 
 
-
-@app.get("/brew/status")
-def brew_status():
-    # TODO include current flowrate here
-    # TODO include elapsed time
-    global cur_brew_id
-    if cur_brew_id is None:
-        return {"status": "no brew in progress"}
-    else:
-        flow_rate = None
-        return {"status": "brew in progress", "brew_id": cur_brew_id}
-
-
-
-
-
-
 @app.post("/brew/valve/forward/{num_steps}")
-def step_forward(
-        num_steps: Annotated[int, Path(title="number of steps on stepper motor", ge=min_steps, le=max_steps)],
-        brew_id: Annotated[MatchBrewId, Query()],
-):
-    #print(f"cur brew id: {cur_brew_id}")
-    #print(f"query param: q={brew_id}")
-    for i in range(num_steps):
-        valve.step_forward()
-        time.sleep(0.1)
-    return {"status": f"stepped forward {num_steps} step(s)"}  # Placeholder response
+def step_forward(brew_id: Annotated[MatchBrewId, Query()],):
+    valve.step_forward()
+    time.sleep(0.1)
+    return {"status": f"stepped forward one step"}
 
 @app.post("/brew/valve/backward/{num_steps}")
-def step_backward(
-        num_steps: Annotated[int, Path(title="number of steps on stepper motor", ge=min_steps, le=max_steps)],
-        brew_id: Annotated[MatchBrewId, Query()],
-):
-    #print(f"cur brew id: {cur_brew_id}")
-    #print(f"query param: q={brew_id}")
-    for i in range(num_steps):
-        valve.step_backward()
-        time.sleep(0.1)
-    return {"status": f"stepped backward {num_steps} step(s)"}  # Placeholder response
+def step_backward(brew_id: Annotated[MatchBrewId, Query()]):
+    valve.step_backward()
+    time.sleep(0.1)
+    return {"status": f"stepped backward 1 step"}

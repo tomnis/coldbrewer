@@ -11,7 +11,7 @@ from retry import retry
 brewer_url = COLDBREW_VALVE_URL
 
 org = COLDBREW_INFLUXDB_ORG
-bucket_name = COLDBREW_INFLUXDB_BUCKET
+bucket_name = COLDBREW_INFLUXDB_WRITE_BUCKET
 
 client = InfluxDBClient(url=COLDBREW_INFLUXDB_URL, token=COLDBREW_INFLUXDB_TOKEN, org=org, timeout=30_000)
 

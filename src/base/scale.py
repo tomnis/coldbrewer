@@ -2,6 +2,12 @@ from abc import ABC, abstractmethod
 
 
 class AbstractScale(ABC):
+    """
+    An abstract base class representing a scale.
+    Defines the interface for scale implementations.
+
+    Designed as a wrapper around Lunar scale to allow for easier mocking and testing.
+    """
 
     @property
     @abstractmethod
@@ -38,15 +44,11 @@ class AbstractScale(ABC):
         """Get the battery percentage of the scale."""
         pass
 
-    @abstractmethod
-    def get_auto_off(self) -> int:
-        """Get the auto-off time in minutes."""
-        pass
 
 
 class MockScale(AbstractScale):
-    import random
     """A mock implementation of the Scale class for testing purposes."""
+    import random
 
     def __init__(self):
         self._connected = False
@@ -77,6 +79,3 @@ class MockScale(AbstractScale):
 
     def get_battery_percentage(self) -> int:
         return self._battery_percentage
-
-    def get_auto_off(self) -> int:
-        return self._auto_off
