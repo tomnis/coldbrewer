@@ -11,6 +11,9 @@ class InfluxDBTimeSeries(TimeSeries):
         # Initialize InfluxDB client here (not implemented)
         self.influxdb = InfluxDBClient(url=url, token=token, org=org, timeout=timeout)
 
+    def write_current_weight(self, weight: float, battery_pct: int) -> None:
+        pass
+
 
     def get_current_weight(self) -> float:
         query_api = self.influxdb.query_api()

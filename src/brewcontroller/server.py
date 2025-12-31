@@ -1,10 +1,11 @@
+import asyncio
 import uuid
 import time
 
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, Query, Path
 from pydantic import BaseModel, validator
-from typing import Tuple, Annotated
+from typing import Annotated
 
 from ..base.config import *
 from ..base.scale import AbstractScale
@@ -16,7 +17,8 @@ cur_brew_id = None
 
 # TODO dependency injection
 
-def initialize_scale() -> AbstractScale:
+# TODO rename to create
+def create_scale() -> AbstractScale:
     if COLDBREW_IS_PROD:
         print("Initializing production scale...")
         from ..brewcontroller.LunarScale import LunarScale
@@ -28,7 +30,7 @@ def initialize_scale() -> AbstractScale:
     return s
 
 
-def initialize_valve() -> AbstractValve:
+def create_valve() -> AbstractValve:
     if COLDBREW_IS_PROD:
         print("Initializing production valve...")
         from ..brewcontroller.MotorKitValve import MotorKitValve
@@ -39,8 +41,13 @@ def initialize_valve() -> AbstractValve:
         v: AbstractValve= MockValve()
     return v
 
-scale = initialize_scale()
-valve = initialize_valve()
+
+def create_time_series() -> TimeSeries:
+    ts =
+
+
+scale = create_scale()
+valve = create_valve()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -55,36 +62,25 @@ async def lifespan(app: FastAPI):
 app = FastAPI(lifespan=lifespan)
 
 
-@app.get("/scale")
-def read_weight():
-    global scale
+# TODO move this return type to a class or pydantic model
+def get_scale_status() -> dict:
     # good enough to support reconnection here. we can just powercycle the scale if anything goes wrong to get back on track
+    global scale
     if not scale.connected:
-        scale = initialize_scale()
+        scale = create_scale()
         scale.connect()
-    weight = scale.get_weight()
-    battery_pct = scale.get_battery_percentage()
-    units = scale.get_units()
-    return {"weight": weight, "battery_pct": battery_pct, "units": units}  # Placeholder value in grams
 
-
-# TODO doesn't seem like this works when reconnecting
-# TODO investigate calling scale.disconnect then scale.connect in sequence
-# tests:
-# - scale is turned off during brew, then turned back on, should be able to reconnect
-# - server process restarts due to crash or update, should be able to reconnect
-# restarting the server won't work, we do need to handle gracefully
-# - disconnect
-# TODO i guess just to be safe we need to powercycle the scale
-# we should be able to power cycle the scale and have the server reconnect
-@app.post("/scale/refresh")
-def refresh_scale_connection():
     if scale.connected:
-        scale.disconnect()
-        time.sleep(5.0)
-    scale.connect()
-    return {"status": "scale connection refreshed"}  # Placeholder response
+        weight = scale.get_weight()
+        battery_pct = scale.get_battery_percentage()
+        units = scale.get_units()
+        return {"scale.connected": True, "weight": weight, "battery_pct": battery_pct, "units": units}
+    else:
+        return {"scale.connected": False}
 
+@app.get("/scale")
+def read_scale():
+    return get_scale_status()
 
 
 
@@ -101,24 +97,59 @@ class MatchBrewId(BaseModel):
             raise ValueError('wrong brew_id')
         return v.title()
 
-@app.post("/valve/acquire")
-def acquire_valve(q: str | None = None):
+
+# Scale task that records data every interval
+async def print_task(s):
+    global cur_brew_id
+    while cur_brew_id is not None:
+        items = scale.get_weight()
+        print(f"scale weight: {items}")
+        weight = items["weight"]
+
+        print('Hello')
+        await asyncio.sleep(s)
+
+@app.post("/brew/acquire")
+async def start_brew():
     global cur_brew_id
     if cur_brew_id is None:
         new_id = str(uuid.uuid4())
         cur_brew_id = new_id
+        # start a scale thread
+        asyncio.create_task(print_task(5))
         return {"status": "valve acquired", "brew_id": new_id}  # Placeholder response
     else:
         print(f"brew id {cur_brew_id} already acquired")
-        return {"status": "valve already acquired"}  # Placeholder response
+        return {"status": "valve already acquired"}  # Placeholder response kkk
 
-@app.post("/valve/release")
-# TODO accept release brew id and verify matches
-def release_valve(brew_id: Annotated[MatchBrewId, Query()]):
+@app.post("/brew/release")
+async def release_brew(brew_id: Annotated[MatchBrewId, Query()]):
     global cur_brew_id
     old_id = cur_brew_id
     cur_brew_id = None
     return {"status": f"valve brew id ${old_id} released"}  # Placeholder response
+
+@app.post("/brew/kill")
+async def end_brew():
+    global cur_brew_id
+    old_id = cur_brew_id
+    cur_brew_id = None
+    return {"status": f"valve brew id ${old_id} killed"}  # Placeholder response
+
+
+
+
+@app.get("/brew/status")
+def brew_status():
+    global cur_brew_id
+    if cur_brew_id is None:
+        return {"status": "no brew in progress"}
+    else:
+        flow_rate = None
+        return {"status": "brew in progress", "brew_id": cur_brew_id}
+
+
+
 
 
 

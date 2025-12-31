@@ -30,7 +30,7 @@ def get_current_weight():
 
 def main():
     """The main function of the script."""
-    interval = 60
+    interval = COLDBREW_VALVE_INTERVAL_SECONDS
     #interval = 0.5
     # target total weight, don't bother taring
     #target_weight = 100 #1137
