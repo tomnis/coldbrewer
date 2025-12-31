@@ -1,4 +1,4 @@
-from ..base.scale import AbstractScale
+from scale import AbstractScale
 
 from pyacaia import AcaiaScale
 from pyacaia import *
