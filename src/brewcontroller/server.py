@@ -46,7 +46,8 @@ valve = initialize_valve()
 async def lifespan(app: FastAPI):
     print("server startup complete")
     yield
-    scale.disconnect()
+    if scale.connected:
+        scale.disconnect()
     print("Shutting down, disconnected scale...")
     valve.release()
     print("Shutting down, released valve ...")
@@ -57,6 +58,7 @@ app = FastAPI(lifespan=lifespan)
 @app.get("/scale")
 def read_weight():
     global scale
+    # good enough to support reconnection here. we can just powercycle the scale if anything goes wrong to get back on track
     if not scale.connected:
         scale = initialize_scale()
         scale.connect()

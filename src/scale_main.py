@@ -1,5 +1,6 @@
 import time
 
+from brewclient.config import *
 from base.config import *
 import requests
 

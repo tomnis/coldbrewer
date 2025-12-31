@@ -1,5 +1,6 @@
 import time
 
+from brewclient.config import *
 from base.config import *
 from brewclient.InfluxDBTimeSeries import InfluxDBTimeSeries
 from brewclient.HttpValve import HttpValve
