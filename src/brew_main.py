@@ -1,7 +1,7 @@
 import time
 
-from brewclient.config import *
-from brewclient.HttpBrewClient import HttpBrewClient
+from appserver.config import *
+from appserver.HttpBrewClient import HttpBrewClient
 
 def main():
     """The main function of the script."""
