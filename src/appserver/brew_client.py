@@ -1,9 +1,16 @@
+import time
 from abc import ABC, abstractmethod
+
+from brewserver.brew_strat import AbstractBrewStrategy
+from brewserver.brew_strat import ValveCommand
 
 class AbstractBrewClient(ABC):
     """An abstract base class representing a brew client.
     Defines the interface for brew client implementations.
     """
+
+    def __init__(self, brew_strategy: AbstractBrewStrategy):
+        self.brew_strategy = brew_strategy
 
     @abstractmethod
     def acquire(self):
@@ -35,6 +42,17 @@ class AbstractBrewClient(ABC):
         """Return the valve to the starting position."""
         pass
 
+    def do_brew(self):
+        while True:
+            current_flow_rate = self.get_current_flow_rate()
+            (valve_command, interval) = self.brew_strategy.step(current_flow_rate)
+            if valve_command == ValveCommand.FORWARD:
+                self.step_forward()
+            elif valve_command == ValveCommand.BACKWARD:
+                self.step_backward()
+
+            time.sleep(interval)
+
 
 import requests
 
@@ -45,7 +63,8 @@ class HttpBrewClient(AbstractBrewClient):
     From the clients perspective, prefer to use server endpoints rather than underlying queries if possible
     """
 
-    def __init__(self, brewer_url: str):
+    def __init__(self, brew_strategy: AbstractBrewStrategy, brewer_url: str):
+        super().__init__(brew_strategy)
         self.brewer_url = brewer_url
         self._brew_id = None
 

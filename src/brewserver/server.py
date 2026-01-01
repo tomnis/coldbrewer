@@ -9,6 +9,7 @@ from typing import Annotated
 
 from config import *
 from scale import AbstractScale
+from brew_strat import DefaultBrewStrategy, ValveCommand
 from valve import AbstractValve
 from time_series import AbstractTimeSeries
 from time_series import InfluxDBTimeSeries
@@ -108,8 +109,8 @@ class MatchBrewId(BaseModel):
         return v.title()
 
 
-# Scale task that records data every interval
 async def collect_scale_data_task(brew_id, s):
+    """Collect scale data every s seconds while brew_id matches current brew id."""
     global cur_brew_id
     while brew_id is not None and brew_id == cur_brew_id:
         scale_state = get_scale_status()
@@ -122,8 +123,62 @@ async def collect_scale_data_task(brew_id, s):
             time_series.write_scale_data(weight, battery_pct)
         await asyncio.sleep(s)
 
-@app.post("/brew/acquire")
+
+
+async def brew_step_task(brew_id, strategy):
+    """brew"""
+    global cur_brew_id
+    while brew_id is not None and brew_id == cur_brew_id:
+        # TODO implement valve data collection
+        # get the current flow rate
+        current_flow_rate = time_series.get_current_flow_rate()
+        (valve_command, interval) = strategy.step(current_flow_rate)
+        if valve_command == ValveCommand.FORWARD:
+            valve.step_forward()
+        elif valve_command == ValveCommand.BACKWARD:
+            valve.step_backward()
+        await asyncio.sleep(interval)
+
+
+
+# TODO should have an endpoint to get the brew status
+@app.post("/brew/start")
 async def start_brew():
+    """Start a brew with the given brew ID."""
+    global cur_brew_id
+    if cur_brew_id is None:
+        new_id = str(uuid.uuid4())
+        cur_brew_id = new_id
+        # start a scale thread
+        strategy = DefaultBrewStrategy()
+        asyncio.create_task(collect_scale_data_task(cur_brew_id, COLDBREW_SCALE_READ_INTERVAL))
+        asyncio.create_task(brew_step_task(new_id, strategy))
+        return {"status": "brew started", "brew_id": cur_brew_id}  # Placeholder response
+    else:
+        return {"status": "brew already in progress"}  # Placeholder response
+
+@app.post("/brew/stop")
+async def stop_brew(brew_id: Annotated[MatchBrewId, Query()]):
+    return release_brew(brew_id)
+
+
+@app.get("/brew/status")
+async def brew_status():
+    global cur_brew_id
+    brew_id = cur_brew_id
+    if cur_brew_id is None:
+        return {"status": "no brew in progress"}
+    else:
+        return {"status": "brew started", "brew_id": brew_id}
+
+
+
+
+
+# use acquire/release semantics to start scale data collection but expected to manage brew logic locally
+@app.post("/brew/acquire")
+async def acquire_brew():
+    """Acquire the brew valve for exclusive use."""
     global cur_brew_id
     if cur_brew_id is None:
         new_id = str(uuid.uuid4())
@@ -137,6 +192,7 @@ async def start_brew():
 
 @app.post("/brew/release")
 async def release_brew(brew_id: Annotated[MatchBrewId, Query()]):
+    """Gracefully release the current brew."""
     global cur_brew_id
     global scale
 
@@ -152,8 +208,10 @@ async def release_brew(brew_id: Annotated[MatchBrewId, Query()]):
     cur_brew_id = None
     return {"status": f"valve brew id ${old_id} released"}  # Placeholder response
 
+
 @app.post("/brew/kill")
 async def kill_brew():
+    """Forcefully kill the current brew."""
     global cur_brew_id
     old_id = cur_brew_id
     cur_brew_id = None
@@ -162,18 +220,21 @@ async def kill_brew():
 
 @app.get("/brew/flow_rate")
 def read_flow_rate():
+    """Read the current flow rate from the time series."""
     flow_rate = time_series.get_current_flow_rate()
     return {"brew_id": cur_brew_id, "flow_rate": flow_rate}
 
 
 @app.post("/brew/valve/forward")
 def step_forward(brew_id: Annotated[MatchBrewId, Query()],):
+    """Step the valve forward one step."""
     valve.step_forward()
     time.sleep(0.1)
     return {"status": f"stepped forward one step"}
 
 @app.post("/brew/valve/backward")
 def step_backward(brew_id: Annotated[MatchBrewId, Query()]):
+    """Step the valve backward one step."""
     valve.step_backward()
     time.sleep(0.1)
     return {"status": f"stepped backward 1 step"}
