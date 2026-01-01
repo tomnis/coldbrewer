@@ -59,6 +59,8 @@ def test_flow_rate():
     assert(float(res["current_weight"]))
     # assert(int(res["scale_battery_pct"]))
     # assert False
+    response = client.post("/brew/kill")
+    assert response.status_code == 200
 
 
 

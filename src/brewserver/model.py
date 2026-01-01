@@ -1,6 +1,6 @@
 from pydantic import BaseModel
 
-from config import *
+from brewserver.config import *
 from enum import Enum
 from dataclasses import dataclass
 from datetime import datetime

@@ -14,7 +14,7 @@ def main():
         # TODO investigate this further, not enough torque?
         #valve.return_to_start()
 
-        brew_client.release()
+        # brew_client.release()
 
 if __name__ == "__main__":
     main()

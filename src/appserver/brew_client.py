@@ -1,8 +1,8 @@
 import time
 from abc import ABC, abstractmethod
 
-from brewserver.brew_strat import AbstractBrewStrategy
-from brewserver.brew_strat import ValveCommand
+from brewserver.brew_strategy import AbstractBrewStrategy
+from brewserver.model import ValveCommand
 
 class AbstractBrewClient(ABC):
     """An abstract base class representing a brew client.
@@ -97,6 +97,7 @@ class HttpBrewClient(AbstractBrewClient):
         if response.status_code == 200:
             print("Released valve")
         else:
+            print(response.json())
             print("Failed to release valve")
 
     def step_forward(self):
