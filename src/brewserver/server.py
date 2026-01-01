@@ -4,13 +4,13 @@ import time
 
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, Query
-from pydantic import BaseModel, validator
+from influxdb_client import InfluxDBClient
+from pydantic import validator
 from typing import Annotated
 
 from config import *
 from scale import AbstractScale
-from brew_strat import DefaultBrewStrategy, ValveCommand
-from src.brewserver.model import StartBrewRequest
+from brew_strat import DefaultBrewStrategy
 from model import *
 from valve import AbstractValve
 from time_series import AbstractTimeSeries
@@ -48,7 +48,7 @@ def create_valve() -> AbstractValve:
     return v
 
 
-def create_time_series() -> AbstractTimeSeries:
+def create_time_series() -> InfluxDBClient:
     print("Initializing InfluxDB time series...")
     print(f"org = {COLDBREW_INFLUXDB_ORG}")
 
@@ -167,7 +167,7 @@ async def start_brew(req: StartBrewRequest | None = None):
 
         # start scale read and brew tasks
         asyncio.create_task(collect_scale_data_task(cur_brew_id, COLDBREW_SCALE_READ_INTERVAL))
-        asyncio.create_task(brew_step_task(new_id, strategy))
+        # asyncio.create_task(brew_step_task(new_id, strategy))
         return {"status": "brew started", "brew_id": cur_brew_id}  # Placeholder response
     else:
         return {"status": "brew already in progress"}  # Placeholder response
@@ -234,6 +234,7 @@ async def kill_brew():
     global cur_brew_id
     old_id = cur_brew_id
     cur_brew_id = None
+    # TODO kill tasks
     return {"status": f"valve brew id ${old_id} killed"}  # Placeholder response
 
 
