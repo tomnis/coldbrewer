@@ -3,7 +3,8 @@ import uuid
 import time
 
 from contextlib import asynccontextmanager
-from fastapi import FastAPI, Query
+from fastapi import FastAPI, Query, HTTPException, status
+from fastapi.testclient import TestClient
 from pydantic import validator
 from typing import Annotated
 
@@ -19,9 +20,7 @@ cur_brew_id = None
 
 from datetime import datetime, timezone
 
-# Get current date and time in UTC as a timezone-aware object
 
-# TODO dependency injection
 def create_scale() -> AbstractScale:
     if COLDBREW_IS_PROD:
         print("Initializing production scale...")
@@ -48,7 +47,7 @@ def create_valve() -> AbstractValve:
 
 def create_time_series() -> InfluxDBTimeSeries:
     print("Initializing InfluxDB time series...")
-    print(f"org = {COLDBREW_INFLUXDB_ORG}")
+    # print(f"org = {COLDBREW_INFLUXDB_ORG}")
 
     ts: AbstractTimeSeries = InfluxDBTimeSeries(
         url=COLDBREW_INFLUXDB_URL,
@@ -168,13 +167,13 @@ async def start_brew(req: StartBrewRequest | None = None):
         # start scale read and brew tasks
         asyncio.create_task(collect_scale_data_task(cur_brew_id, COLDBREW_SCALE_READ_INTERVAL))
         asyncio.create_task(brew_step_task(new_id, strategy))
-        return {"status": "brew started", "brew_id": cur_brew_id}  # Placeholder response
+        return {"status": "started", "brew_id": cur_brew_id}  # Placeholder response
     else:
-        return {"status": "brew already in progress"}  # Placeholder response
+        raise HTTPException(status_code=409, detail="brew already in progress")
 
 @app.post("/brew/stop")
 async def stop_brew(brew_id: Annotated[MatchBrewId, Query()]):
-    return release_brew(brew_id)
+    return await release_brew(brew_id)
 
 
 @app.get("/brew/status")
@@ -233,11 +232,16 @@ async def kill_brew():
     """Forcefully kill the current brew."""
     global cur_brew_id
     old_id = cur_brew_id
-    cur_brew_id = None
-    # TODO kill tasks
-    return {"status": f"valve brew id ${old_id} killed"}  # Placeholder response
+    if old_id is not None:
+        cur_brew_id = None
+        valve.return_to_start()
+        valve.release()
+        return {"status": "killed", "brew_id": old_id}
+    else:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="no brew in progress")
 
 
+# TODO maybe not needed? might be better to just use the status end point
 @app.get("/brew/flow_rate")
 def read_flow_rate():
     """Read the current flow rate from the time series."""
@@ -258,3 +262,10 @@ def step_backward(brew_id: Annotated[MatchBrewId, Query()]):
     valve.step_backward()
     time.sleep(0.1)
     return {"status": f"stepped backward 1 step"}
+
+
+# TODO it would be nice to auto run tests here
+if not COLDBREW_IS_PROD:
+    print("running some tests")
+    import pytest
+    exit_code = pytest.main(["-v", "src"])
