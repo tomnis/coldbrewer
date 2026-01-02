@@ -15,7 +15,9 @@ from valve import AbstractValve
 from time_series import AbstractTimeSeries
 from time_series import InfluxDBTimeSeries
 import logging
-
+#
+# from fastapi.logger import logger
+#
 from datetime import datetime, timezone
 
 cur_brew_id = None
@@ -27,11 +29,12 @@ cur_brew_id = None
 #     datefmt="%Y-%m-%d %H:%M:%S",
 # )
 
+
 # TODO logs don't show up like this
 logger = logging.getLogger("uvicorn")
-logger.propagate = False
+# logger.propagate = False
 # logger = logging.getLogger(__name__)
-logger.__format__("")
+# logger.__format__("")
 logger.info("abcdef")
 
 
