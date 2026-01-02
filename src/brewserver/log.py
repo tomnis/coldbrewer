@@ -6,21 +6,29 @@ import logging
 
 ## use the built in uvicorn logger without any changes
 logger = logging.getLogger("uvicorn")
+logger.debug("hi thee")
 logger.info("abcdef")
+logger.warning("hi thee")
 
-import json
-import uvicorn
-conf = uvicorn.config.LOGGING_CONFIG
-print(json.dumps(conf, indent=4))
-#
-# print(logger.handlers)
+# import json
+# import uvicorn
+# conf = uvicorn.config.LOGGING_CONFIG
+# print(logger.handlers[0].formatter.format)
+# print(json.dumps(conf, indent=4))
+
+# TODO this doesn't work on a fresh startup for some reason
+# default_handler = [handler for handler in logger.handlers if handler.name == "default"]
+# default_handler = default_handler[0]
+# default_handler.setFormatter(logging.Formatter("%(asctime)s %(levelname)s %(name)s %(message)s"))
+# print(f"got default handler")
+
 
 ## use our own logger
 # basic config needs to be called first
 logging.basicConfig(
     level=logging.INFO,
     #format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-    format="%(levelname)s: %(filename)s:%(lineno)d - %(message)s",
+    format="      %(levelname)s   %(filename)s:%(lineno)d - %(message)s",
     datefmt="%Y-%m-%d %H:%M:%S",
 )
 # TODO somehow this modifies the uvicorn logger, avoid

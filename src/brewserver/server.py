@@ -69,12 +69,13 @@ async def lifespan(app: FastAPI):
     """
     # TODO good place to configure logger?
     logger.info("lifespan: server startup complete")
+    logger.warning("hi thee")
     yield
     if scale is not None:
         scale.disconnect()
-    print("Shutting down, disconnected scale...")
+    logger.info("Shutting down, disconnected scale...")
     valve.release()
-    print("Shutting down, released valve ...")
+    logger.info("Shutting down, released valve ...")
 
 
 """
