@@ -1,3 +1,45 @@
+import logging
+
+# doesnt work
+# from fastapi.logger import logger as fastapilogger
+# fastapilogger.info("calling the fastapi logge")
+
+## use the built in uvicorn logger without any changes
+logger = logging.getLogger("uvicorn")
+logger.info("abcdef")
+
+import json
+import uvicorn
+conf = uvicorn.config.LOGGING_CONFIG
+print(json.dumps(conf, indent=4))
+#
+# print(logger.handlers)
+
+## use our own logger
+# basic config needs to be called first
+logging.basicConfig(
+    level=logging.INFO,
+    #format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    format="%(levelname)s: %(filename)s:%(lineno)d - %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
+)
+# TODO somehow this modifies the uvicorn logger, avoid
+# logging.config.dictConfig(conf)
+#
+# needed to prevent our log entries from showing up twice
+logging.getLogger("uvicorn").propagate = False
+logger = logging.getLogger("brewserver")
+logger.info("done configuring logger")
+
+# from fastapi_cli.utils.cli import CustomFormatter
+
+# formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+# handler = logger.handlers[0]
+# handler.setFormatter(formatter)
+# formatter: CustomFormatter = logger.handlers[0].formatter
+
+# print(formatter.format(""))
+
 
 
 conf = """

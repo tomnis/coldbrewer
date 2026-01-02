@@ -3,6 +3,7 @@ import uuid
 import time
 
 from contextlib import asynccontextmanager
+from log import logger
 from fastapi import FastAPI, Query, HTTPException, status
 from pydantic import validator
 from typing import Annotated
@@ -14,30 +15,9 @@ from model import *
 from valve import AbstractValve
 from time_series import AbstractTimeSeries
 from time_series import InfluxDBTimeSeries
-import logging
-#
-# from fastapi.logger import logger
-#
 from datetime import datetime, timezone
 
 cur_brew_id = None
-
-# basic config needs to be called first
-# logging.basicConfig(
-#     level=logging.INFO,
-#     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-#     datefmt="%Y-%m-%d %H:%M:%S",
-# )
-
-
-# TODO logs don't show up like this
-logger = logging.getLogger("uvicorn")
-# logger.propagate = False
-# logger = logging.getLogger(__name__)
-# logger.__format__("")
-logger.info("abcdef")
-
-
 
 
 def create_scale() -> AbstractScale:
@@ -88,7 +68,7 @@ async def lifespan(app: FastAPI):
     We don't need to eagerly connect to the scale here, just make sure we disconnect on shutdown
     """
     # TODO good place to configure logger?
-    logger.info("server startup complete")
+    logger.info("lifespan: server startup complete")
     yield
     if scale is not None:
         scale.disconnect()
@@ -259,6 +239,7 @@ async def release_brew(brew_id: Annotated[MatchBrewId, Query()]):
 async def kill_brew():
     """Forcefully kill the current brew."""
     global cur_brew_id
+    logger.info(f"{cur_brew_id} will be killed")
     old_id = cur_brew_id
     if old_id is not None:
         cur_brew_id = None
@@ -292,7 +273,8 @@ def step_backward(brew_id: Annotated[MatchBrewId, Query()]):
     return {"status": f"stepped backward 1 step"}
 
 
-if not COLDBREW_IS_PROD:
+#if not COLDBREW_IS_PROD:
+if False:
     logger.info("running some tests...")
     import pytest
     exit_code = pytest.main(["--disable-warnings", "-v", "src"])
