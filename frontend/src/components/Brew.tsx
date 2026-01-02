@@ -36,6 +36,7 @@ export default function Brew() {
     setBrewInProgress(brewInProgress)
   }
   useEffect(() => {
+      // TODO somehow call this repeatedly to update brew in progress
     fetchBrewInProgress()
   }, [])
 
@@ -44,12 +45,27 @@ export default function Brew() {
       <Container maxW="container.xl" pt="100px">
         <Stack gap={5}>
     Brew in Progress:
-             <b key={brewInProgress.brew_id}>{brewInProgress.brew_id} {brewInProgress.current_flow_rate}</b>
+             <b key={brewInProgress.brew_id}>id={brewInProgress.brew_id} flow_rate={brewInProgress.current_flow_rate} weight={brewInProgress.current_weight}</b>
         </Stack>
+        <CancelBrew fetchBrewInProgress={fetchBrewInProgress} />
         <StartBrew />
       </Container>
     </BrewContext.Provider>
   )
+}
+
+
+const CancelBrew = ({fetchBrewInProgress}) => {
+   const cancelBrew = async() => {
+       await fetch('http://localhost:8000/brew/kill', {
+           method: "POST"
+       })
+       await fetchBrewInProgress()
+   }
+
+    return (
+        <Button h="1.5rem" onClick={cancelBrew}>cancel_brew</Button>
+    )
 }
 
 
@@ -61,8 +77,7 @@ function StartBrew() {
        setBrewRequest(event.target.value)
      }
 
-
-    // handle "brew start buttonw"
+    // handle "brew start buttonw" TODO on error
      const handleSubmit =(event: React.FormEvent<HTMLFormElement>) => {
          event.preventDefault()
          console.log(startBrewRequest)
@@ -83,8 +98,6 @@ function StartBrew() {
    const valveIntervalInputId = useId();
    const epsilonInputId = useId();
 
-
-
    return (
      <BrewContext.Provider value={{startBrewRequest, fetchBrewInProgress}}>
        <Container maxW="container.xl" pt="100px">
@@ -102,5 +115,4 @@ function StartBrew() {
        </Container>
      </BrewContext.Provider>
    )
-
 }
