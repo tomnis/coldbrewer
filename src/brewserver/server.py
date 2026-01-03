@@ -209,7 +209,7 @@ async def brew_status():
         timestamp = datetime.now(timezone.utc)
         current_flow_rate = time_series.get_current_flow_rate()
         current_weight = scale.get_weight()
-        res = BrewStatusRecord(brew_id=brew_id, timestamp=timestamp, current_flow_rate=current_flow_rate, current_weight=current_weight)
+        res = BrewStatus(brew_id=brew_id, timestamp=timestamp, current_flow_rate=current_flow_rate, current_weight=current_weight)
         return res
 
 
@@ -287,8 +287,8 @@ def step_backward(brew_id: Annotated[MatchBrewId, Query()]):
     return {"status": f"stepped backward 1 step"}
 
 
-# if not COLDBREW_IS_PROD:
-if False:
+if not COLDBREW_IS_PROD:
+# if False:
     logger.info("running some tests...")
     import pytest
     exit_code = pytest.main(["--disable-warnings", "-v", "."])

@@ -8,7 +8,7 @@ class AbstractBrewStrategy(ABC):
     """encapsulates a brewing strategy for controlling the brew process. assumes that lock strategy has already been handled"""
 
     @abstractmethod
-    def step(self, flow_rate: float) -> Tuple[BrewStatusRecord, int]:
+    def step(self, flow_rate: float) -> Tuple[BrewStatus, int]:
         """Perform a single step in the brewing strategy. """
         pass
 

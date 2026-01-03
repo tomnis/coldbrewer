@@ -30,7 +30,7 @@ class StartBrewRequest(BaseModel):
 
 
 # TODO rename to just brew status
-class BrewStatusRecord(BaseModel):
+class BrewStatus(BaseModel):
     brew_id: str
     timestamp: datetime
     current_flow_rate: float
