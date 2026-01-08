@@ -212,7 +212,7 @@ function StartBrew() {
   return (
     <Container maxW="container.xl" pt="100px">
       <form onSubmit={handleSubmit}>
-        <label htmlFor={targetFlowRateInputId}>target_flow_rate:</label>
+        <label htmlFor={targetFlowRateInputId}>target_flow_rate (g/sec):</label>
         <Input
           value={targetFlowRate}
           onChange={(e) => {
@@ -231,7 +231,7 @@ function StartBrew() {
           </Text>
         )}
 
-        <label htmlFor={valveIntervalInputId}>valve_interval:</label>
+        <label htmlFor={valveIntervalInputId}>valve_interval (sec):</label>
         <Input
           value={valveInterval}
           onChange={(e) => {
@@ -250,7 +250,7 @@ function StartBrew() {
           </Text>
         )}
 
-        <label htmlFor={epsilonInputId}>epsilon:</label>
+        <label htmlFor={epsilonInputId}>epsilon (g/sec):</label>
         <Input
           value={epsilon}
           onChange={(e) => setEpsilon(e.target.value)}
