@@ -138,6 +138,7 @@ const CancelBrew: React.FC = () => {
 };
 
 // typescript
+// typescript
 function StartBrew() {
   const DEFAULT_FLOW = "0.05";
   const DEFAULT_VALVE_INTERVAL = "60";
@@ -147,6 +148,7 @@ function StartBrew() {
   const [valveInterval, setValveInterval] = React.useState("");
   const [epsilon, setEpsilon] = React.useState("");
   const [targetFlowError, setTargetFlowError] = React.useState<string | null>(null);
+  const [valveIntervalError, setValveIntervalError] = React.useState<string | null>(null);
   const { fetchBrewInProgress } = React.useContext(BrewContext);
 
   const validateTargetFlowInput = (value: string): string | null => {
@@ -158,20 +160,36 @@ function StartBrew() {
     return null;
   };
 
+  const validateValveIntervalInput = (value: string): string | null => {
+    const trimmed = value.trim();
+    if (!trimmed) return null; // empty -> will use default (valid)
+    const n = Number(trimmed);
+    if (Number.isNaN(n)) return "valve_interval must be a number";
+    if (n < 4 || n > 1024) return "valve_interval must be between 4 and 1024";
+    return null;
+  };
+
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
     const effectiveTargetFlow = targetFlowRate.trim() || DEFAULT_FLOW;
+    const effectiveValveInterval = valveInterval.trim() || DEFAULT_VALVE_INTERVAL;
 
-    const err = validateTargetFlowInput(effectiveTargetFlow);
-    if (err) {
-      setTargetFlowError(err);
+    const targetErr = validateTargetFlowInput(effectiveTargetFlow);
+    if (targetErr) {
+      setTargetFlowError(targetErr);
+      return;
+    }
+
+    const valveErr = validateValveIntervalInput(effectiveValveInterval);
+    if (valveErr) {
+      setValveIntervalError(valveErr);
       return;
     }
 
     const newBrewRequest = {
       target_flow_rate: effectiveTargetFlow,
-      valve_interval: valveInterval.trim() || DEFAULT_VALVE_INTERVAL,
+      valve_interval: effectiveValveInterval,
       epsilon: epsilon.trim() || DEFAULT_EPSILON,
     };
 
@@ -216,12 +234,21 @@ function StartBrew() {
         <label htmlFor={valveIntervalInputId}>valve_interval:</label>
         <Input
           value={valveInterval}
-          onChange={(e) => setValveInterval(e.target.value)}
+          onChange={(e) => {
+            setValveInterval(e.target.value);
+            setValveIntervalError(validateValveIntervalInput(e.target.value));
+          }}
           type="text"
           id={valveIntervalInputId}
           placeholder={DEFAULT_VALVE_INTERVAL}
           aria-label="valve_interval"
+          aria-invalid={!!valveIntervalError}
         />
+        {valveIntervalError && (
+          <Text color="red.500" fontSize="sm" mt={1}>
+            {valveIntervalError}
+          </Text>
+        )}
 
         <label htmlFor={epsilonInputId}>epsilon:</label>
         <Input
@@ -232,7 +259,7 @@ function StartBrew() {
           placeholder={DEFAULT_EPSILON}
           aria-label="epsilon"
         />
-        <Button type="submit" isDisabled={!!targetFlowError}>start_brew</Button>
+        <Button type="submit" isDisabled={!!targetFlowError || !!valveIntervalError}>start_brew</Button>
       </form>
     </Container>
   );
