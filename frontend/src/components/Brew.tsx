@@ -146,14 +146,31 @@ function StartBrew() {
   const [targetFlowRate, setTargetFlowRate] = React.useState("");
   const [valveInterval, setValveInterval] = React.useState("");
   const [epsilon, setEpsilon] = React.useState("");
+  const [targetFlowError, setTargetFlowError] = React.useState<string | null>(null);
   const { fetchBrewInProgress } = React.useContext(BrewContext);
+
+  const validateTargetFlowInput = (value: string): string | null => {
+    const trimmed = value.trim();
+    if (!trimmed) return null; // empty -> will use default (valid)
+    const n = Number(trimmed);
+    if (Number.isNaN(n)) return "target_flow_rate must be a number";
+    if (n < 0.02 || n > 0.08) return "target_flow_rate must be between 0.02 and 0.08";
+    return null;
+  };
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
-    // use user input when present, otherwise fall back to the placeholder defaults
+    const effectiveTargetFlow = targetFlowRate.trim() || DEFAULT_FLOW;
+
+    const err = validateTargetFlowInput(effectiveTargetFlow);
+    if (err) {
+      setTargetFlowError(err);
+      return;
+    }
+
     const newBrewRequest = {
-      target_flow_rate: targetFlowRate.trim() || DEFAULT_FLOW,
+      target_flow_rate: effectiveTargetFlow,
       valve_interval: valveInterval.trim() || DEFAULT_VALVE_INTERVAL,
       epsilon: epsilon.trim() || DEFAULT_EPSILON,
     };
@@ -180,12 +197,21 @@ function StartBrew() {
         <label htmlFor={targetFlowRateInputId}>target_flow_rate:</label>
         <Input
           value={targetFlowRate}
-          onChange={(e) => setTargetFlowRate(e.target.value)}
+          onChange={(e) => {
+            setTargetFlowRate(e.target.value);
+            setTargetFlowError(validateTargetFlowInput(e.target.value));
+          }}
           type="text"
           id={targetFlowRateInputId}
           placeholder={DEFAULT_FLOW}
           aria-label="target_flow_rate"
+          aria-invalid={!!targetFlowError}
         />
+        {targetFlowError && (
+          <Text color="red.500" fontSize="sm" mt={1}>
+            {targetFlowError}
+          </Text>
+        )}
 
         <label htmlFor={valveIntervalInputId}>valve_interval:</label>
         <Input
@@ -206,7 +232,7 @@ function StartBrew() {
           placeholder={DEFAULT_EPSILON}
           aria-label="epsilon"
         />
-        <Button type="submit">start_brew</Button>
+        <Button type="submit" isDisabled={!!targetFlowError}>start_brew</Button>
       </form>
     </Container>
   );
