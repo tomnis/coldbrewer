@@ -173,7 +173,7 @@ async def brew_step_task(brew_id, strategy):
 
 @app.post("/brew/start")
 async def start_brew(req: StartBrewRequest | None = None):
-    # logger.info(f"brew start request: {req}")
+    logger.info(f"brew start request: {req}")
     """Start a brew with the given brew ID."""
     global cur_brew_id
     if cur_brew_id is None:
