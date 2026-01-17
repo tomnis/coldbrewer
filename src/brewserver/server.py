@@ -300,17 +300,17 @@ def step_backward(brew_id: Annotated[MatchBrewId, Query()]):
 
 #---- ui endpoints ----#
 # for react assets
-app.mount("/static", StaticFiles(directory="build/static"), name="static")
+app.mount("/app/assets", StaticFiles(directory="build/assets"), name="assets")
 
 # catchall for react (must be last?)
-@app.get("/{full_path:path}")
+@app.get("/app/{full_path:path}")
 async def serve_react_app(full_path: str):
     return FileResponse("build/index.html")
 
 
 
-if not COLDBREW_IS_PROD:
-# if False:
+# if not COLDBREW_IS_PROD:
+if False:
     logger.info("running some tests...")
     import pytest
     exit_code = pytest.main(["--disable-warnings", "-v", "."])

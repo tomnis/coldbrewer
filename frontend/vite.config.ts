@@ -5,6 +5,7 @@ import react from '@vitejs/plugin-react'
 export default defineConfig({
   plugins: [react()],
   envPrefix: 'COLDBREW_FRONTEND_API_URL',
+  base: "http://localhost:8000/app",
   server: {
       allowedHosts: [
         'coldbrewer.local',

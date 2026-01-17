@@ -1,10 +1,8 @@
 // typescript
 import React, { useEffect, useState, useRef, useId, createContext } from "react";
 import {
-  Box,
   Button,
   Container,
-  Flex,
   Input,
   Stack,
   Text,
@@ -231,7 +229,7 @@ function StartBrew() {
         <label htmlFor={targetFlowRateInputId}>target_flow_rate (g/sec):</label>
         <Input
           value={targetFlowRate}
-          onChange={(e) => {
+          onChange={(e: any) => {
             setTargetFlowRate(e.target.value);
             setTargetFlowError(validateTargetFlowInput(e.target.value));
           }}
@@ -250,7 +248,7 @@ function StartBrew() {
         <label htmlFor={valveIntervalInputId}>valve_interval (sec):</label>
         <Input
           value={valveInterval}
-          onChange={(e) => {
+          onChange={(e: any) => {
             setValveInterval(e.target.value);
             setValveIntervalError(validateValveIntervalInput(e.target.value));
           }}
@@ -269,7 +267,7 @@ function StartBrew() {
         <label htmlFor={epsilonInputId}>epsilon (g/sec):</label>
         <Input
           value={epsilon}
-          onChange={(e) => {
+          onChange={(e: any) => {
             setEpsilon(e.target.value);
             setEpsilonError(validateEpsilonInput(e.target.value));
           }}
