@@ -28,7 +28,8 @@ class LunarScale(AbstractScale):
 
     def disconnect(self):
         # TODO experiment more with disconnect behavior and if we should clear out the scale pointer
-        self.scale.disconnect()
+        if self.scale is not None:
+            self.scale.disconnect()
         self.scale = None
         time.sleep(0.5)
 
