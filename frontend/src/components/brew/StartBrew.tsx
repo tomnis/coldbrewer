@@ -1,0 +1,136 @@
+import React from "react";
+import { Button, Container, Input, Text } from "@chakra-ui/react";
+import { useId } from "react";
+import { useBrewContext } from "./BrewProvider";
+import { DEFAULT_FLOW, DEFAULT_VALVE_INTERVAL, DEFAULT_EPSILON } from "./constants";
+import { apiUrl } from "./constants";
+import { validateTargetFlowInput, validateValveIntervalInput, validateEpsilonInput } from "./validators";
+
+export default function StartBrew() {
+  const [targetFlowRate, setTargetFlowRate] = React.useState("");
+  const [valveInterval, setValveInterval] = React.useState("");
+  const [epsilon, setEpsilon] = React.useState("");
+  const [targetFlowError, setTargetFlowError] = React.useState<string | null>(null);
+  const [valveIntervalError, setValveIntervalError] = React.useState<string | null>(null);
+  const [epsilonError, setEpsilonError] = React.useState<string | null>(null);
+  const { fetchBrewInProgress, toggleFlip } = useBrewContext();
+
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+
+    const effectiveTargetFlow = targetFlowRate.trim() || DEFAULT_FLOW;
+    const effectiveValveInterval = valveInterval.trim() || DEFAULT_VALVE_INTERVAL;
+    const effectiveEpsilon = epsilon.trim() || DEFAULT_EPSILON;
+
+    const targetErr = validateTargetFlowInput(effectiveTargetFlow);
+    if (targetErr) {
+      setTargetFlowError(targetErr);
+      return;
+    }
+
+    const valveErr = validateValveIntervalInput(effectiveValveInterval);
+    if (valveErr) {
+      setValveIntervalError(valveErr);
+      return;
+    }
+
+    const epsErr = validateEpsilonInput(effectiveEpsilon);
+    if (epsErr) {
+      setEpsilonError(epsErr);
+      return;
+    }
+
+    const newBrewRequest = {
+      target_flow_rate: effectiveTargetFlow,
+      valve_interval: effectiveValveInterval,
+      epsilon: effectiveEpsilon,
+    };
+
+    try {
+      await fetch(`${apiUrl}/brew/start`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(newBrewRequest),
+      });
+      await fetchBrewInProgress();
+      toggleFlip();
+    } catch (e) {
+      console.error("start failed", e);
+    }
+  };
+
+  const targetFlowRateInputId = useId();
+  const valveIntervalInputId = useId();
+  const epsilonInputId = useId();
+
+  return (
+    <Container maxW="container.xl" pt="100px">
+      <form className="start-brew-form" onSubmit={handleSubmit}>
+        <label htmlFor={targetFlowRateInputId}>target_flow_rate (g/sec):</label>
+        <Input
+          value={targetFlowRate}
+          onChange={(e: any) => {
+            setTargetFlowRate(e.target.value);
+            setTargetFlowError(validateTargetFlowInput(e.target.value));
+          }}
+          type="text"
+          id={targetFlowRateInputId}
+          placeholder={DEFAULT_FLOW}
+          aria-label="target_flow_rate"
+          aria-invalid={!!targetFlowError}
+        />
+        {targetFlowError && (
+          <Text color="red.500" fontSize="sm" mt={1}>
+            {targetFlowError}
+          </Text>
+        )}
+
+        <label htmlFor={valveIntervalInputId}>valve_interval (sec):</label>
+        <Input
+          value={valveInterval}
+          onChange={(e: any) => {
+            setValveInterval(e.target.value);
+            setValveIntervalError(validateValveIntervalInput(e.target.value));
+          }}
+          type="text"
+          id={valveIntervalInputId}
+          placeholder={DEFAULT_VALVE_INTERVAL}
+          aria-label="valve_interval"
+          aria-invalid={!!valveIntervalError}
+        />
+        {valveIntervalError && (
+          <Text color="red.500" fontSize="sm" mt={1}>
+            {valveIntervalError}
+          </Text>
+        )}
+
+        <label htmlFor={epsilonInputId}>epsilon (g/sec):</label>
+        <Input
+          value={epsilon}
+          onChange={(e: any) => {
+            setEpsilon(e.target.value);
+            setEpsilonError(validateEpsilonInput(e.target.value));
+          }}
+          type="text"
+          id={epsilonInputId}
+          placeholder={DEFAULT_EPSILON}
+          aria-label="epsilon"
+          aria-invalid={!!epsilonError}
+        />
+        {epsilonError && (
+          <Text color="red.500" fontSize="sm" mt={1}>
+            {epsilonError}
+          </Text>
+        )}
+
+        <Button
+          className="brew-button"
+          type="submit"
+          disabled={!!targetFlowError || !!valveIntervalError || !!epsilonError}
+        >
+          start_brew
+        </Button>
+      </form>
+    </Container>
+  );
+}
