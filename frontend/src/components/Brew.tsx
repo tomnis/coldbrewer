@@ -31,7 +31,7 @@ const BrewContext = createContext<BrewContextShape>({
 
 export default function Brew() {
   const [brewInProgress, setBrewInProgress] = useState<BrewInProgress | null>(null);
-    const [isFlipped, setIsFlipped] = useState(false);
+  const [isFlipped, setIsFlipped] = useState(false);
 
   const handleFlip = () => {
     setIsFlipped(!isFlipped);
@@ -119,16 +119,16 @@ export default function Brew() {
                 onClick={handleFlip}
               >
                 <div className="flip-card-front">
-                Brew parameters:
-        <StartBrew />
+                  Brew parameters:
+                  <StartBrew />
                 </div>
                 <div className="flip-card-back">
 
-          Brew in Progress:
-          <b key={brewInProgress?.brew_id}>
-            [id={brewInProgress?.brew_id}] [flow_rate={brewInProgress?.current_flow_rate}] [weight={brewInProgress?.current_weight}]
-          </b>
-        <CancelBrew />
+                  Brew in Progress:
+                  <b key={brewInProgress?.brew_id}>
+                    [id={brewInProgress?.brew_id}] [flow_rate={brewInProgress?.current_flow_rate}] [weight={brewInProgress?.current_weight}]
+                  </b>
+                  <CancelBrew />
                 </div>
               </div>
             </div>
@@ -170,6 +170,7 @@ function StartBrew() {
   const [valveIntervalError, setValveIntervalError] = React.useState<string | null>(null);
   const [epsilonError, setEpsilonError] = React.useState<string | null>(null);
   const { fetchBrewInProgress } = React.useContext(BrewContext);
+  const [isFlipped, setIsFlipped] = useState(false);
 
   const validateTargetFlowInput = (value: string): string | null => {
     const trimmed = value.trim();
@@ -197,6 +198,11 @@ function StartBrew() {
     if (n <= 0) return "epsilon must be greater than 0.0";
     if (n >= 4) return "epsilon must be less than 4.0";
     return null;
+  };
+
+
+  const handleFlip = () => {
+    setIsFlipped(!isFlipped);
   };
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
@@ -306,7 +312,21 @@ function StartBrew() {
           </Text>
         )}
 
-        <Button type="submit" disabled={!!targetFlowError || !!valveIntervalError || !!epsilonError}>start_brew</Button>
+        <Button
+            type="submit"
+            disabled={!!targetFlowError || !!valveIntervalError || !!epsilonError}
+            onclick={(e) => {
+                setIsFlipped(!isFlipped);
+
+                           // Flip the card
+//                             const card = document.querySelector('.flip-card');
+//                             if (card) {
+//                               card.classList.toggle('flipped');
+//                             }
+                handleSubmit(e as any);
+            }}
+
+        >start_brew</Button>
       </form>
     </Container>
   );
