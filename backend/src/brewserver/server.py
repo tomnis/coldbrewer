@@ -178,6 +178,7 @@ async def brew_step_task(brew_id, strategy):
             if valve_command == ValveCommand.STOP:
                 logger.info(f"Target weight reached, stopping brew {brew_id}")
                 cur_brew_id = None
+                valve.return_to_start()
                 valve.release()
                 return
             elif valve_command == ValveCommand.FORWARD:

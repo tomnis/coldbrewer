@@ -4,7 +4,7 @@ import { useId } from "react";
 import { useBrewContext } from "./BrewProvider";
 import { DEFAULT_FLOW, DEFAULT_VALVE_INTERVAL, DEFAULT_EPSILON, DEFAULT_TARGET_WEIGHT } from "./constants";
 import { apiUrl } from "./constants";
-import { validateTargetFlowInput, validateValveIntervalInput, validateEpsilonInput } from "./validators";
+import { validateTargetFlowInput, validateValveIntervalInput, validateEpsilonInput, validateTargetWeightInput } from "./validators";
 
 export default function StartBrew() {
   const [targetFlowRate, setTargetFlowRate] = React.useState("");
@@ -24,6 +24,7 @@ export default function StartBrew() {
     const effectiveTargetFlow = targetFlowRate.trim() || DEFAULT_FLOW;
     const effectiveValveInterval = valveInterval.trim() || DEFAULT_VALVE_INTERVAL;
     const effectiveEpsilon = epsilon.trim() || DEFAULT_EPSILON;
+    const effectiveTargetWeight = targetWeight.trim() || DEFAULT_TARGET_WEIGHT;
 
 
     const targetErr = validateTargetFlowInput(effectiveTargetFlow);
@@ -44,10 +45,17 @@ export default function StartBrew() {
       return;
     }
 
+    const targetWeightErr = validateTargetWeightInput(effectiveTargetWeight);
+    if (targetWeightErr) {
+      setTargetWeightError(targetWeightErr);
+      return;
+    }
+
     const newBrewRequest = {
       target_flow_rate: effectiveTargetFlow,
       valve_interval: effectiveValveInterval,
       epsilon: effectiveEpsilon,
+      target_weight: effectiveTargetWeight,
     };
 
     try {
@@ -151,7 +159,7 @@ export default function StartBrew() {
         <Button
           className="brew-button"
           type="submit"
-          disabled={!!targetFlowError || !!valveIntervalError || !!epsilonError}
+          disabled={!!targetFlowError || !!valveIntervalError || !!epsilonError || !!targetWeightError}
         >
           start_brew
         </Button>

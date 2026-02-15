@@ -24,7 +24,7 @@ class StartBrewRequest(BaseModel):
     target_flow_rate: float = COLDBREW_TARGET_FLOW_RATE
     scale_interval: float = COLDBREW_SCALE_READ_INTERVAL
     valve_interval: float = COLDBREW_VALVE_INTERVAL_SECONDS
-    target_weight: int = COLDBREW_TARGET_WEIGHT_GRAMS
+    target_weight: float = COLDBREW_TARGET_WEIGHT_GRAMS
     epsilon: float = COLDBREW_EPSILON
     # TODO strategy: str
 
