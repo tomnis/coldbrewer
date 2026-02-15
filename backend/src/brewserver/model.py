@@ -27,6 +27,13 @@ class ScaleStatus(BaseModel):
     units: str
     battery_pct: int
 
+
+@dataclass
+class Brew:
+    id: str
+    status: BrewState
+    time_started: datetime
+
 @dataclass
 class StartBrewRequest(BaseModel):
     target_flow_rate: float = COLDBREW_TARGET_FLOW_RATE

@@ -16,15 +16,14 @@ from typing import Annotated
 from scale import AbstractScale
 from brew_strategy import DefaultBrewStrategy
 from model import *
-from model import BrewState
+from model import Brew, BrewState
 from valve import AbstractValve
 from time_series import AbstractTimeSeries
 from time_series import InfluxDBTimeSeries
 from datetime import datetime, timezone
 
-# TODO should combine these into a class
-cur_brew_id = None
-brew_state = BrewState.IDLE
+# Single instance of current brew instead of separate id and state
+cur_brew: Brew | None = None
 
 
 def create_scale() -> AbstractScale:
@@ -139,29 +138,28 @@ class MatchBrewId(BaseModel):
     brew_id: str
     @field_validator('brew_id')
     def brew_id_must_match(cls, v):
-        global cur_brew_id
-        # logger.info(f"cur brew id: {cur_brew_id}")
-        if cur_brew_id is None:
+        global cur_brew
+        # logger.info(f"cur brew id: {cur_brew.id}")
+        if cur_brew is None:
             raise ValueError('no brew_id in progress')
-        elif v != cur_brew_id:
+        elif v != cur_brew.id:
             raise ValueError('wrong brew_id')
         return v
 
 
 async def collect_scale_data_task(brew_id, s):
     """Collect scale data every s seconds while brew_id matches current brew id."""
-    global cur_brew_id
-    global brew_state
-    while brew_id is not None and brew_id == cur_brew_id:
+    global cur_brew
+    while brew_id is not None and cur_brew is not None and brew_id == cur_brew.id:
         try:
             # Only collect data when actively brewing (not paused)
-            if brew_state == BrewState.BREWING:
+            if cur_brew.status == BrewState.BREWING:
                 scale_state = get_scale_status()
                 # logger.info(f"Scale state: {scale_state}")
                 weight = scale_state.weight
                 battery_pct = scale_state.battery_pct
                 if weight is not None and battery_pct is not None:
-                    # logger.info(f"Brew ID: (writing influxdb data) {cur_brew_id} Weight: {weight}, Battery: {battery_pct}%")
+                    # logger.info(f"Brew ID: (writing influxdb data) {cur_brew.id} Weight: {weight}, Battery: {battery_pct}%")
                     # TODO could add a brew_id label here
                     time_series.write_scale_data(weight, battery_pct)
             await asyncio.sleep(s)
@@ -173,12 +171,11 @@ async def collect_scale_data_task(brew_id, s):
 
 async def brew_step_task(brew_id, strategy):
     """brew"""
-    global cur_brew_id
-    global brew_state
-    while brew_id is not None and brew_id == cur_brew_id:
+    global cur_brew
+    while brew_id is not None and cur_brew is not None and brew_id == cur_brew.id:
         try:
             # Only execute valve commands when actively brewing (not paused)
-            if brew_state == BrewState.BREWING:
+            if cur_brew.status == BrewState.BREWING:
                 # get the current flow rate and weight
                 current_flow_rate = time_series.get_current_flow_rate()
                 current_weight = time_series.get_current_weight()
@@ -186,8 +183,8 @@ async def brew_step_task(brew_id, strategy):
                 
                 if valve_command == ValveCommand.STOP:
                     logger.info(f"Target weight reached, stopping brew {brew_id}")
-                    brew_state = BrewState.COMPLETED
-                    cur_brew_id = None
+                    cur_brew.status = BrewState.COMPLETED
+                    cur_brew = None
                     scale.disconnect()
                     valve.return_to_start()
                     valve.release()
@@ -210,12 +207,10 @@ async def brew_step_task(brew_id, strategy):
 async def start_brew(req: StartBrewRequest | None = None):
     logger.info(f"brew start request: {req}")
     """Start a brew with the given brew ID."""
-    global cur_brew_id
-    global brew_state
-    if cur_brew_id is None:
+    global cur_brew
+    if cur_brew is None:
         new_id = str(uuid.uuid4())
-        cur_brew_id = new_id
-        brew_state = BrewState.BREWING
+        cur_brew = Brew(id=new_id, status=BrewState.BREWING, time_started=datetime.now(timezone.utc))
         if req is None:
             strategy = DefaultBrewStrategy()
         else:
@@ -224,9 +219,9 @@ async def start_brew(req: StartBrewRequest | None = None):
         # logger.info(f"strategy: {str(strategy)}")
 
         # start scale read and brew tasks
-        asyncio.create_task(collect_scale_data_task(cur_brew_id, COLDBREW_SCALE_READ_INTERVAL))
+        asyncio.create_task(collect_scale_data_task(cur_brew.id, COLDBREW_SCALE_READ_INTERVAL))
         asyncio.create_task(brew_step_task(new_id, strategy))
-        return {"status": "started", "brew_id": cur_brew_id}
+        return {"status": "started", "brew_id": cur_brew.id}
     else:
         raise HTTPException(status_code=409, detail="brew already in progress")
 
@@ -239,21 +234,19 @@ async def stop_brew(brew_id: Annotated[MatchBrewId, Query()]):
 @app.get("/api/brew/status")
 async def brew_status():
     """Gets the current brew status."""
-    global cur_brew_id
-    global brew_state
-    brew_id = cur_brew_id
-    if brew_id is None:
+    global cur_brew
+    if cur_brew is None:
         return {"status": "no brew in progress", "brew_state": BrewState.IDLE.value}
     else:
         timestamp = datetime.now(timezone.utc)
         current_flow_rate = time_series.get_current_flow_rate()
         current_weight = scale.get_weight()
         if current_weight is None:
-            res = {"status": "scale not connected", "brew_state": brew_state.value}
+            res = {"status": "scale not connected", "brew_state": cur_brew.status.value}
         elif current_flow_rate is None:
-            res = {"status": "insufficient data for flow rate", "brew_state": brew_state.value}
+            res = {"status": "insufficient data for flow rate", "brew_state": cur_brew.status.value}
         else:
-            res = BrewStatus(brew_id=brew_id, brew_state=brew_state, timestamp=timestamp, current_flow_rate=current_flow_rate, current_weight=current_weight)
+            res = BrewStatus(brew_id=cur_brew.id, brew_state=cur_brew.status, timestamp=timestamp, current_flow_rate=current_flow_rate, current_weight=current_weight)
             # Add brew_state to the response
             res_dict = res.model_dump()
             return res_dict
@@ -263,13 +256,13 @@ async def brew_status():
 @app.post("/api/brew/pause")
 async def pause_brew():
     """Pause the current brew."""
-    global brew_state
-    if brew_state == BrewState.BREWING:
-        brew_state = BrewState.PAUSED
+    global cur_brew
+    if cur_brew is not None and cur_brew.status == BrewState.BREWING:
+        cur_brew.status = BrewState.PAUSED
         logger.info("Brew paused")
-        return {"status": "paused", "brew_state": brew_state.value}
-    elif brew_state == BrewState.PAUSED:
-        return {"status": "already paused", "brew_state": brew_state.value}
+        return {"status": "paused", "brew_state": cur_brew.status.value}
+    elif cur_brew is not None and cur_brew.status == BrewState.PAUSED:
+        return {"status": "already paused", "brew_state": cur_brew.status.value}
     else:
         raise HTTPException(status_code=400, detail="no brew in progress or already completed")
 
@@ -277,13 +270,13 @@ async def pause_brew():
 @app.post("/api/brew/resume")
 async def resume_brew():
     """Resume a paused brew."""
-    global brew_state
-    if brew_state == BrewState.PAUSED:
-        brew_state = BrewState.BREWING
+    global cur_brew
+    if cur_brew is not None and cur_brew.status == BrewState.PAUSED:
+        cur_brew.status = BrewState.BREWING
         logger.info("Brew resumed")
-        return {"status": "resumed", "brew_state": brew_state.value}
-    elif brew_state == BrewState.BREWING:
-        return {"status": "already brewing", "brew_state": brew_state.value}
+        return {"status": "resumed", "brew_state": cur_brew.status.value}
+    elif cur_brew is not None and cur_brew.status == BrewState.BREWING:
+        return {"status": "already brewing", "brew_state": cur_brew.status.value}
     else:
         raise HTTPException(status_code=400, detail="no paused brew to resume")
 
@@ -294,25 +287,24 @@ async def resume_brew():
 @app.post("/api/brew/acquire")
 async def acquire_brew():
     """Acquire the brew valve for exclusive use."""
-    global cur_brew_id
-    if cur_brew_id is None:
+    global cur_brew
+    if cur_brew is None:
         new_id = str(uuid.uuid4())
-        cur_brew_id = new_id
+        cur_brew = Brew(id=new_id, status=BrewState.IDLE, time_started=datetime.now(timezone.utc))
         # start a scale thread
-        asyncio.create_task(collect_scale_data_task(cur_brew_id, COLDBREW_SCALE_READ_INTERVAL))
+        asyncio.create_task(collect_scale_data_task(cur_brew.id, COLDBREW_SCALE_READ_INTERVAL))
         return {"status": "valve acquired", "brew_id": new_id}  # Placeholder response
     else:
-        # logger.info(f"brew id {cur_brew_id} already acquired")
+        # logger.info(f"brew id {cur_brew.id} already acquired")
         return {"status": "valve already acquired"}  # Placeholder response kkk
 
 @app.post("/api/brew/release")
 async def release_brew(brew_id: Annotated[MatchBrewId, Query()]):
     """Gracefully release the current brew."""
-    global cur_brew_id
-    global brew_state
+    global cur_brew
     global scale
 
-    old_id = cur_brew_id
+    old_id = cur_brew.id
     # TODO probably don't want to do this here, could cause some kind of conflict
     # edge case with teardown before anything has happened
     #valve.return_to_start()
@@ -321,21 +313,18 @@ async def release_brew(brew_id: Annotated[MatchBrewId, Query()]):
 
     scale.disconnect()
     scale = None
-    cur_brew_id = None
-    brew_state = BrewState.IDLE
+    cur_brew = None
     return {"status": f"valve brew id ${old_id} released"}  # Placeholder response
 
 
 @app.post("/api/brew/kill")
 async def kill_brew():
     """Forcefully kill the current brew."""
-    global cur_brew_id
-    global brew_state
-    logger.info(f"{cur_brew_id} will be killed")
-    old_id = cur_brew_id
-    if old_id is not None:
-        cur_brew_id = None
-        brew_state = BrewState.IDLE
+    global cur_brew
+    logger.info(f"{cur_brew.id if cur_brew else None} will be killed")
+    if cur_brew is not None:
+        old_id = cur_brew.id
+        cur_brew = None
         valve.return_to_start()
         valve.release()
         return {"status": "killed", "brew_id": old_id}
@@ -347,8 +336,9 @@ async def kill_brew():
 @app.get("/api/brew/flow_rate")
 def read_flow_rate():
     """Read the current flow rate from the time series."""
+    global cur_brew
     flow_rate = time_series.get_current_flow_rate()
-    return {"brew_id": cur_brew_id, "flow_rate": flow_rate}
+    return {"brew_id": cur_brew.id if cur_brew else None, "flow_rate": flow_rate}
 
 
 @app.post("/api/brew/valve/forward")
