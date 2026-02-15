@@ -62,7 +62,7 @@ function BrewInner() {
     <>
       Brew in Progress:
       <b key={brewInProgress?.brew_id}>
-        [id={brewInProgress?.brew_id}] [state={brewInProgress?.brew_state}] [started={brewInProgress?.time_started}] [flow_rate={brewInProgress?.current_flow_rate ? parseFloat(brewInProgress.current_flow_rate).toFixed(3) + 'g/s' : 'N/A'}] [weight={brewInProgress?.current_weight}]
+        [id={brewInProgress?.brew_id}] [state={brewInProgress?.brew_state}] [started={brewInProgress?.time_started}] [flow_rate={brewInProgress?.current_flow_rate ? parseFloat(brewInProgress.current_flow_rate).toFixed(3) + 'g/s' : 'N/A'}] [weight={brewInProgress?.current_weight ? parseFloat(brewInProgress.current_weight).toFixed(1) + 'g' : 'N/A'}]
       </b>
       {etaString && remainingString && (
         <div>
