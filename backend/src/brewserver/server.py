@@ -9,7 +9,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 
-from pydantic import validator
+from pydantic import field_validator
 from typing import Annotated
 
 # from config import *
@@ -137,7 +137,7 @@ def read_scale():
 class MatchBrewId(BaseModel):
     """ Middleware to match brew_id. Used to restrict execution to matching id pairs."""
     brew_id: str
-    @validator('brew_id')
+    @field_validator('brew_id')
     def brew_id_must_match(cls, v):
         global cur_brew_id
         # logger.info(f"cur brew id: {cur_brew_id}")
@@ -145,7 +145,7 @@ class MatchBrewId(BaseModel):
             raise ValueError('no brew_id in progress')
         elif v != cur_brew_id:
             raise ValueError('wrong brew_id')
-        return v.title()
+        return v
 
 
 async def collect_scale_data_task(brew_id, s):
