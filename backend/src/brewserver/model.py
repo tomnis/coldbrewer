@@ -5,6 +5,7 @@ from config import *
 from enum import Enum
 from dataclasses import dataclass
 from datetime import datetime
+from typing import Optional
 
 
 class BrewState(str, Enum):
@@ -33,6 +34,7 @@ class Brew:
     id: str
     status: BrewState
     time_started: datetime
+    target_weight: float
 
 @dataclass
 class StartBrewRequest(BaseModel):
@@ -53,4 +55,4 @@ class BrewStatus(BaseModel):
     timestamp: datetime
     current_flow_rate: float
     current_weight: float
-    # TODO add ETA, time started
+    estimated_time_remaining: Optional[float] = None

@@ -6,6 +6,7 @@ export interface BrewInProgress {
   current_weight: string;
   brew_state: BrewState;
   time_started: string;
+  estimated_time_remaining: string | null;
 }
 
 export type BrewContextShape = {

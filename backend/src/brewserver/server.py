@@ -210,7 +210,8 @@ async def start_brew(req: StartBrewRequest | None = None):
     global cur_brew
     if cur_brew is None:
         new_id = str(uuid.uuid4())
-        cur_brew = Brew(id=new_id, status=BrewState.BREWING, time_started=datetime.now(timezone.utc))
+        target_weight = req.target_weight if req is not None else COLDBREW_TARGET_WEIGHT_GRAMS
+        cur_brew = Brew(id=new_id, status=BrewState.BREWING, time_started=datetime.now(timezone.utc), target_weight=target_weight)
         if req is None:
             strategy = DefaultBrewStrategy()
         else:
@@ -246,7 +247,16 @@ async def brew_status():
         elif current_flow_rate is None:
             res = {"status": "insufficient data for flow rate", "brew_state": cur_brew.status.value}
         else:
-            res = BrewStatus(brew_id=cur_brew.id, brew_state=cur_brew.status, time_started=cur_brew.time_started, timestamp=timestamp, current_flow_rate=current_flow_rate, current_weight=current_weight)
+            # Calculate estimated_time_remaining
+            remaining_weight = cur_brew.target_weight - current_weight
+            if remaining_weight <= 0:
+                estimated_time_remaining = 0.0
+            elif current_flow_rate <= 0:
+                estimated_time_remaining = None
+            else:
+                estimated_time_remaining = remaining_weight / current_flow_rate
+            
+            res = BrewStatus(brew_id=cur_brew.id, brew_state=cur_brew.status, time_started=cur_brew.time_started, timestamp=timestamp, current_flow_rate=current_flow_rate, current_weight=current_weight, estimated_time_remaining=estimated_time_remaining)
             # Add brew_state to the response
             res_dict = res.model_dump()
             return res_dict
@@ -290,7 +300,7 @@ async def acquire_brew():
     global cur_brew
     if cur_brew is None:
         new_id = str(uuid.uuid4())
-        cur_brew = Brew(id=new_id, status=BrewState.IDLE, time_started=datetime.now(timezone.utc))
+        cur_brew = Brew(id=new_id, status=BrewState.IDLE, time_started=datetime.now(timezone.utc), target_weight=COLDBREW_TARGET_WEIGHT_GRAMS)
         # start a scale thread
         asyncio.create_task(collect_scale_data_task(cur_brew.id, COLDBREW_SCALE_READ_INTERVAL))
         return {"status": "valve acquired", "brew_id": new_id}  # Placeholder response
