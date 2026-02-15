@@ -32,7 +32,7 @@ function BrewInner() {
     <>
       Brew in Progress:
       <b key={brewInProgress?.brew_id}>
-        [id={brewInProgress?.brew_id}] [state={brewInProgress?.brew_state}] [flow_rate={brewInProgress?.current_flow_rate}] [weight={brewInProgress?.current_weight}]
+        [id={brewInProgress?.brew_id}] [state={brewInProgress?.brew_state}] [started={brewInProgress?.time_started}] [flow_rate={brewInProgress?.current_flow_rate}] [weight={brewInProgress?.current_weight}]
       </b>
       <PauseResumeButton />
       <CancelBrew />
