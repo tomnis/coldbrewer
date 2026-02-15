@@ -14,9 +14,9 @@ function formatTimeRemaining(seconds: number | null): string {
   const remainingSeconds = Math.floor(seconds % 60);
   
   if (minutes === 0) {
-    return `~${remainingSeconds}s remaining`;
+    return `~${remainingSeconds}s`;
   }
-  return `~${minutes}m ${remainingSeconds}s remaining`;
+  return `~${minutes}m ${remainingSeconds}s`;
 }
 
 function formatETA(seconds: number | null): string {
@@ -29,7 +29,7 @@ function formatETA(seconds: number | null): string {
   const displayHours = hours % 12 || 12;
   const displayMinutes = minutes.toString().padStart(2, "0");
   
-  return `ETA: ${displayHours}:${displayMinutes} ${ampm}`;
+  return `${displayHours}:${displayMinutes} ${ampm}`;
 }
 
 function formatStartedTime(timeStarted: string | undefined): string {
@@ -61,27 +61,65 @@ function BrewInner() {
   const etaString = formatETA(eta);
   const remainingString = formatTimeRemaining(eta);
 
+  const brewId = brewInProgress?.brew_id?.substring(0, 8) || "N/A";
+  const state = brewInProgress?.brew_state || "UNKNOWN";
+  const started = formatStartedTime(brewInProgress?.time_started);
+  const flowRate = brewInProgress?.current_flow_rate ? parseFloat(brewInProgress.current_flow_rate).toFixed(3) + " g/s" : "N/A";
+  const weight = brewInProgress?.current_weight ? parseFloat(brewInProgress.current_weight).toFixed(1) + " g" : "N/A";
+
   const front = (
-    <>
-      Brew parameters:
+    <div className="terminal-box terminal-glow">
+      <div className="terminal-header">
+        <span>$ ./coldbrewer --init</span>
+      </div>
       <StartBrew />
-    </>
+    </div>
   );
 
   const back = (
-    <>
-      Brew in Progress:
-      <b key={brewInProgress?.brew_id}>
-        [id={brewInProgress?.brew_id?.substring(0, 8)}] [state={brewInProgress?.brew_state}] [started={formatStartedTime(brewInProgress?.time_started)}] [flow_rate={brewInProgress?.current_flow_rate ? parseFloat(brewInProgress.current_flow_rate).toFixed(3) + 'g/s' : 'N/A'}] [weight={brewInProgress?.current_weight ? parseFloat(brewInProgress.current_weight).toFixed(1) + 'g' : 'N/A'}]
-      </b>
-      {etaString && remainingString && (
-        <div>
-          {etaString} ({remainingString})
+    <div className="terminal-box terminal-glow">
+      <div className="terminal-header">
+        <span>$ ./brew_monitor --verbose</span>
+      </div>
+      
+      <div className="terminal-row">
+        <span className="terminal-label">BREW_ID</span>
+        <span className="terminal-value">{brewId}</span>
+      </div>
+      <div className="terminal-row">
+        <span className="terminal-label">STATE</span>
+        <span className="terminal-value">{state}</span>
+      </div>
+      <div className="terminal-row">
+        <span className="terminal-label">STARTED</span>
+        <span className="terminal-value">{started}</span>
+      </div>
+      <div className="terminal-row">
+        <span className="terminal-label">FLOW_RATE</span>
+        <span className="terminal-value">{flowRate}</span>
+      </div>
+      <div className="terminal-row">
+        <span className="terminal-label">WEIGHT</span>
+        <span className="terminal-value">{weight}</span>
+      </div>
+      {etaString && (
+        <div className="terminal-row">
+          <span className="terminal-label">ETA</span>
+          <span className="terminal-value">{etaString}</span>
         </div>
       )}
-      <PauseResumeButton />
-      <CancelBrew />
-    </>
+      {remainingString && (
+        <div className="terminal-row">
+          <span className="terminal-label">REMAINING</span>
+          <span className="terminal-value">{remainingString}</span>
+        </div>
+      )}
+      
+      <div className="terminal-footer">
+        <PauseResumeButton />
+        <CancelBrew />
+      </div>
+    </div>
   );
 
   return <FlipCard isFlipped={isFlipped} front={front} back={back} />;

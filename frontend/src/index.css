@@ -1,11 +1,11 @@
 :root{
-  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
-  line-height: 1.5;
+  font-family: 'VT323', 'Courier New', Courier, monospace;
+  line-height: 1.2;
   font-weight: 400;
 
-  color-scheme: light dark;
-  color: rgba(255, 255, 255, 0.87);
-  background-color: #242424;
+  color-scheme: dark;
+  color: #33ff33;
+  background-color: #0a0a0a;
 
   font-synthesis: none;
   text-rendering: optimizeLegibility;
@@ -13,88 +13,150 @@
   -moz-osx-font-smoothing: grayscale;
 }
 
-[data-scope="dialog"] {
-  background: #1a1a1a !important;
-  --bg-currentcolor: #1a1a1a !important;
+/* Terminal glow effect */
+.terminal-glow {
+  text-shadow: 0 0 2px #33ff33, 0 0 5px #33ff33, 0 0 10px #33ff33;
 }
 
+/* CRT scanline overlay */
+.scanlines::before {
+  content: "";
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: repeating-linear-gradient(
+    0deg,
+    rgba(0, 0, 0, 0.15),
+    rgba(0, 0, 0, 0.15) 1px,
+    transparent 1px,
+    transparent 2px
+  );
+  pointer-events: none;
+  z-index: 1000;
+}
+
+/* Subtle screen flicker */
+@keyframes flicker {
+  0% { opacity: 0.97; }
+  5% { opacity: 0.95; }
+  10% { opacity: 0.97; }
+  15% { opacity: 0.93; }
+  20% { opacity: 0.98; }
+  25% { opacity: 0.96; }
+  30% { opacity: 0.97; }
+  35% { opacity: 0.94; }
+  40% { opacity: 0.99; }
+  45% { opacity: 0.95; }
+  50% { opacity: 0.97; }
+  55% { opacity: 0.94; }
+  60% { opacity: 0.98; }
+  65% { opacity: 0.96; }
+  70% { opacity: 0.97; }
+  75% { opacity: 0.93; }
+  80% { opacity: 0.99; }
+  85% { opacity: 0.95; }
+  90% { opacity: 0.98; }
+  95% { opacity: 0.96; }
+  100% { opacity: 0.97; }
+}
+
+.screen-flicker {
+  animation: flicker 0.15s infinite;
+}
+
+[data-scope="dialog"] {
+  background: #0a0a0a !important;
+  --bg-currentcolor: #0a0a0a !important;
+  color: #33ff33;
+}
+
+/* Terminal button styles */
 button {
-  background-color: #1a1a1a;
-  color: #ffffff;
+  background-color: #0a0a0a;
+  color: #33ff33;
+  border: 1px solid #33ff33;
+  font-family: 'VT323', 'Courier New', Courier, monospace;
+  text-shadow: 0 0 2px #33ff33;
+  padding: 0.5em 1em;
+  margin: 0.25em;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  border-radius: 0;
+  font-size: 1.1em;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+button:hover {
+  background-color: #33ff33;
+  color: #0a0a0a;
+  text-shadow: none;
+  box-shadow: 0 0 10px #33ff33;
+}
+
+button:focus,
+button:focus-visible {
+  outline: 2px solid #33ff33;
+  outline-offset: 2px;
 }
 
 input::placeholder {
-  color: #888888;
+  color: #1a5c1a;
   opacity: 1;
 }
 
-/* For Firefox */
 input::-moz-placeholder {
-  color: #888888;
+  color: #1a5c1a;
   opacity: 1;
 }
 
-/* For Chrome/Safari/Opera */
 input::-webkit-input-placeholder {
-  color: #888888;
+  color: #1a5c1a;
 }
 
-/* For Internet Explorer */
 input:-ms-input-placeholder {
-  color: #888888;
+  color: #1a5c1a;
 }
 
+input {
+  background-color: #0a0a0a;
+  color: #33ff33;
+  border: 1px solid #33ff33;
+  font-family: 'VT323', 'Courier New', Courier, monospace;
+  padding: 0.5em;
+  font-size: 1.1em;
+}
 
 a {
   font-weight: 500;
-  color: #646cff;
-  text-decoration: inherit;
+  color: #33ff33;
+  text-decoration: underline;
 }
 a:hover {
-  color: #535bf2;
+  color: #66ff66;
+  text-shadow: 0 0 5px #33ff33;
 }
 
-h1 {
-  font-size: 3.2em;
-  line-height: 1.1;
+h1, h2, h3, h4, h5, h6 {
+  text-shadow: 0 0 2px #33ff33, 0 0 5px #33ff33;
 }
 
-button {
-  border-radius: 8px;
-  border: 1px solid transparent;
-  padding: 0.6em 1.2em;
-  font-size: 1em;
-  font-weight: 500;
-  font-family: inherit;
-  background-color: #1a1a1a;
-  cursor: pointer;
-  transition: border-color 0.25s;
-}
-button:hover {
-  border-color: #646cff;
-}
-button:focus,
-button:focus-visible {
-  outline: 4px auto -webkit-focus-ring-color;
-}
-
-
+/* Flip card - terminal style */
 .flip-card-container {
   perspective: 1000px;
-  width: 500px;
-  height: 500px;
+  width: 520px;
   margin: 50px auto;
 }
 
 .flip-card {
   position: relative;
   width: 100%;
-  height: 100%;
+  min-height: 400px;
   transform-style: preserve-3d;
   transition: transform 0.6s;
   cursor: pointer;
-  border-radius: 10px;
-  box-shadow: 0 4px 8px rgba(0,0,0,0.2);
 }
 
 .flip-card.flipped {
@@ -105,33 +167,94 @@ button:focus-visible {
 .flip-card-back {
   position: absolute;
   width: 100%;
-  height: 100%;
+  min-height: 400px;
   backface-visibility: hidden;
   display: flex;
   flex-direction: column;
-  justify-content: center;
+  justify-content: flex-start;
   align-items: center;
   padding: 20px;
-  border-radius: 10px;
+  border: 2px solid #33ff33;
+  box-shadow: 0 0 10px #33ff33, inset 0 0 20px rgba(51, 255, 51, 0.1);
 }
 
 .flip-card-front {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
+  background: #0a0a0a;
 }
 
 .flip-card-back {
-  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-  color: white;
+  background: #0a0a0a;
   transform: rotateY(180deg);
 }
 
 .flip-card h2 {
-  margin: 0 0 10px 0;
+  margin: 0 0 15px 0;
   font-size: 1.5em;
+  text-shadow: 0 0 5px #33ff33;
 }
 
 .flip-card p {
   margin: 0;
-  font-size: 1em;
+  font-size: 1.1em;
+}
+
+/* Terminal box drawing */
+.terminal-box {
+  width: 100%;
+  max-width: 480px;
+  padding: 15px;
+  margin: 10px 0;
+}
+
+.terminal-header {
+  border-bottom: 1px dashed #33ff33;
+  padding-bottom: 8px;
+  margin-bottom: 12px;
+}
+
+.terminal-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 4px 0;
+  font-size: 1.2em;
+}
+
+.terminal-label {
+  color: #33ff33;
+  opacity: 0.7;
+}
+
+.terminal-value {
+  text-shadow: 0 0 3px #33ff33;
+}
+
+.terminal-footer {
+  border-top: 1px dashed #33ff33;
+  padding-top: 12px;
+  margin-top: 12px;
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+}
+
+/* Blinking cursor */
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+.cursor-blink::after {
+  content: "_";
+  animation: blink 1s infinite;
+}
+
+/* Input in terminal style */
+input[type="number"] {
+  -moz-appearance: textfield;
+}
+
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
 }
