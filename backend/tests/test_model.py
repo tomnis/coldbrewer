@@ -140,6 +140,7 @@ class TestBrewStatus:
         status = BrewStatus(
             brew_id="test-brew-123",
             brew_state=BrewState.BREWING,
+            time_started=timestamp,
             timestamp=timestamp,
             current_flow_rate=0.05,
             current_weight=50.0
@@ -156,6 +157,7 @@ class TestBrewStatus:
         status = BrewStatus(
             brew_id="test-brew-123",
             brew_state=BrewState.BREWING,
+            time_started=timestamp,
             timestamp=timestamp,
             current_flow_rate=0.05,
             current_weight=50.0
@@ -176,6 +178,7 @@ class TestBrewStatus:
         status = BrewStatus(
             brew_id="test-brew",
             brew_state=BrewState.IDLE,
+            time_started=timestamp,
             timestamp=timestamp,
             current_flow_rate=0.0,
             current_weight=0.0
@@ -186,6 +189,7 @@ class TestBrewStatus:
         status = BrewStatus(
             brew_id="test-brew",
             brew_state=BrewState.PAUSED,
+            time_started=timestamp,
             timestamp=timestamp,
             current_flow_rate=0.0,
             current_weight=25.0
@@ -196,6 +200,7 @@ class TestBrewStatus:
         status = BrewStatus(
             brew_id="test-brew",
             brew_state=BrewState.COMPLETED,
+            time_started=timestamp,
             timestamp=timestamp,
             current_flow_rate=0.0,
             current_weight=100.0
@@ -208,6 +213,7 @@ class TestBrewStatus:
         status = BrewStatus(
             brew_id="test-brew",
             brew_state=BrewState.IDLE,
+            time_started=timestamp,
             timestamp=timestamp,
             current_flow_rate=0.0,
             current_weight=0.0

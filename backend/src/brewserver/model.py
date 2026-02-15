@@ -49,6 +49,7 @@ class StartBrewRequest(BaseModel):
 class BrewStatus(BaseModel):
     brew_id: str
     brew_state: BrewState
+    time_started: datetime
     timestamp: datetime
     current_flow_rate: float
     current_weight: float
