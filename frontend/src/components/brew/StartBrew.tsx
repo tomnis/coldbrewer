@@ -2,16 +2,19 @@ import React from "react";
 import { Button, Container, Input, Text } from "@chakra-ui/react";
 import { useId } from "react";
 import { useBrewContext } from "./BrewProvider";
-import { DEFAULT_FLOW, DEFAULT_VALVE_INTERVAL, DEFAULT_EPSILON } from "./constants";
+import { DEFAULT_FLOW, DEFAULT_VALVE_INTERVAL, DEFAULT_EPSILON, DEFAULT_TARGET_WEIGHT } from "./constants";
 import { apiUrl } from "./constants";
 import { validateTargetFlowInput, validateValveIntervalInput, validateEpsilonInput } from "./validators";
 
 export default function StartBrew() {
   const [targetFlowRate, setTargetFlowRate] = React.useState("");
   const [valveInterval, setValveInterval] = React.useState("");
+  const [targetWeight, setTargetWeight] = React.useState("");
   const [epsilon, setEpsilon] = React.useState("");
   const [targetFlowError, setTargetFlowError] = React.useState<string | null>(null);
   const [valveIntervalError, setValveIntervalError] = React.useState<string | null>(null);
+  const [targetWeightError, setTargetWeightError] = React.useState<string | null>(null);
+
   const [epsilonError, setEpsilonError] = React.useState<string | null>(null);
   const { fetchBrewInProgress, toggleFlip } = useBrewContext();
 
@@ -21,6 +24,7 @@ export default function StartBrew() {
     const effectiveTargetFlow = targetFlowRate.trim() || DEFAULT_FLOW;
     const effectiveValveInterval = valveInterval.trim() || DEFAULT_VALVE_INTERVAL;
     const effectiveEpsilon = epsilon.trim() || DEFAULT_EPSILON;
+
 
     const targetErr = validateTargetFlowInput(effectiveTargetFlow);
     if (targetErr) {
@@ -61,6 +65,7 @@ export default function StartBrew() {
 
   const targetFlowRateInputId = useId();
   const valveIntervalInputId = useId();
+  const targetWeightInputId = useId();
   const epsilonInputId = useId();
 
   return (
@@ -103,6 +108,26 @@ export default function StartBrew() {
             {valveIntervalError}
           </Text>
         )}
+
+
+            <label htmlFor={targetWeightInputId}>target_weight (grams):</label>
+            <Input
+              value={targetWeight}
+              onChange={(e: any) => {
+                setTargetWeight(e.target.value);
+                setTargetWeightError(validateTargetWeightInput(e.target.value));
+              }}
+              type="text"
+              id={targetWeightInputId}
+              placeholder={DEFAULT_TARGET_WEIGHT}
+              aria-label="target_weight"
+              aria-invalid={!!targetWeightError}
+            />
+            {targetWeightError && (
+              <Text color="red.500" fontSize="sm" mt={1}>
+                {targetWeightError}
+              </Text>
+            )}
 
         <label htmlFor={epsilonInputId}>epsilon (g/sec):</label>
         <Input

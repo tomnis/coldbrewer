@@ -25,3 +25,13 @@ export const validateEpsilonInput = (value: string): string | null => {
   if (n >= 4) return "epsilon must be less than 4.0";
   return null;
 };
+
+export const validateTargetWeightInput = (value: string): string | null => {
+    const trimmed = value.trim();
+    if (!trimmed) return null;
+    const n = Number(trimmed);
+    if (Number.isNaN(n)) return "target_weight must be a number";
+    if (n <= 0) return "target_weight must be greater than 0";
+    if (n >= 1340) return "target_weight must be less than 1340";
+    return null;
+};

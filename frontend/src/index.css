@@ -82,7 +82,7 @@ button:focus-visible {
 .flip-card-container {
   perspective: 1000px;
   width: 500px;
-  height: 400px;
+  height: 500px;
   margin: 50px auto;
 }
 
