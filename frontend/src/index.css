@@ -134,6 +134,17 @@ input {
   font-size: 1.1em;
 }
 
+/* Error state for inputs - red border */
+input[aria-invalid="true"] {
+  border-color: #ff0000;
+  box-shadow: 0 0 5px #ff0000;
+}
+
+input[aria-invalid="true"]:focus,
+input[aria-invalid="true"]:focus-visible {
+  outline-color: #ff0000;
+}
+
 a {
   font-weight: 500;
   color: #33ff33;
