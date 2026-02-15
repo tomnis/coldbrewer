@@ -219,6 +219,13 @@ h1, h2, h3, h4, h5, h6 {
   font-size: 1.2em;
 }
 
+.terminal-separator {
+  display: flex;
+  justify-content: space-between;
+  margin: 8px 0;
+  opacity: 0.5;
+}
+
 .terminal-label {
   color: #33ff33;
   opacity: 0.7;

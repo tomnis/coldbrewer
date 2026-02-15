@@ -89,16 +89,17 @@ function BrewInner() {
         <span className="terminal-value">{brewId}</span>
       </div>
       <div className="terminal-row">
-        <span className="terminal-label">STATE</span>
-        <span className="terminal-value">{state}</span>
+        <span className="terminal-label">TARGET_WEIGHT</span>
+        <span className="terminal-value">{targetWeight}</span>
       </div>
       <div className="terminal-row">
         <span className="terminal-label">STARTED</span>
         <span className="terminal-value">{started}</span>
       </div>
+      <div className="terminal-separator">______________________________________________</div>
       <div className="terminal-row">
-        <span className="terminal-label">TARGET_WEIGHT</span>
-        <span className="terminal-value">{targetWeight}</span>
+        <span className="terminal-label">STATE</span>
+        <span className="terminal-value">{state}</span>
       </div>
       <div className="terminal-row">
         <span className="terminal-label">FLOW_RATE</span>
