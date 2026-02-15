@@ -24,7 +24,8 @@ export const BrewProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // When brewInProgress changes, update isFlipped to show correct side of card
   useEffect(() => {
-    if (brewInProgress !== null) {
+      console.log("brew in progress: $brewInProgress");
+    if (brewInProgress !== null && brewInProgress.brew_state === "IDLE") {
       setIsFlipped(true);
     }
   }, [brewInProgress]);

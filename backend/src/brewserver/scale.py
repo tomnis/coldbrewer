@@ -59,11 +59,12 @@ class MockScale(AbstractScale):
         return self._connected
 
     def connect(self):
-        logger.info("[Mock] Scale connected.")
+        logger.info("[Mock] Scale connecting.")
         self._connected = True
 
     def disconnect(self):
-        logger.info("[Mock] Scale disconnected.")
+        logger.info("[Mock] Scale resetting  weight, disconnecting.")
+        self._weight = 0.0
         self._connected = False
 
     def get_weight(self) -> float:

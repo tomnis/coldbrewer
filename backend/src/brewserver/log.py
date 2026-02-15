@@ -6,9 +6,6 @@ import logging
 
 ## use the built in uvicorn logger without any changes
 logger = logging.getLogger("uvicorn")
-logger.debug("hi thee")
-logger.info("abcdef")
-logger.warning("hi thee")
 
 # import json
 # import uvicorn
