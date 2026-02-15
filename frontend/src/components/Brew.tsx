@@ -63,10 +63,11 @@ function BrewInner() {
   const remainingString = formatTimeRemaining(eta);
 
   const brewId = brewInProgress?.brew_id?.substring(0, 8) || "N/A";
-  const state = brewInProgress?.brew_state || "UNKNOWN";
+  const state = brewInProgress?.brew_state?.toUpperCase() || "UNKNOWN";
   const started = formatStartedTime(brewInProgress?.time_started);
   const flowRate = brewInProgress?.current_flow_rate ? parseFloat(brewInProgress.current_flow_rate).toFixed(3) + " g/s" : "N/A";
   const weight = brewInProgress?.current_weight ? parseFloat(brewInProgress.current_weight).toFixed(1) + " g" : "N/A";
+  const targetWeight = brewInProgress?.target_weight ? parseFloat(brewInProgress.target_weight).toFixed(1) + " g" : "N/A";
 
   const front = (
     <div className="terminal-box terminal-glow">
@@ -94,6 +95,10 @@ function BrewInner() {
       <div className="terminal-row">
         <span className="terminal-label">STARTED</span>
         <span className="terminal-value">{started}</span>
+      </div>
+      <div className="terminal-row">
+        <span className="terminal-label">TARGET_WEIGHT</span>
+        <span className="terminal-value">{targetWeight}</span>
       </div>
       <div className="terminal-row">
         <span className="terminal-label">FLOW_RATE</span>

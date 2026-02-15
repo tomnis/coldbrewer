@@ -256,7 +256,7 @@ async def brew_status():
             else:
                 estimated_time_remaining = remaining_weight / current_flow_rate
             
-            res = BrewStatus(brew_id=cur_brew.id, brew_state=cur_brew.status, time_started=cur_brew.time_started, timestamp=timestamp, current_flow_rate=current_flow_rate, current_weight=current_weight, estimated_time_remaining=estimated_time_remaining)
+            res = BrewStatus(brew_id=cur_brew.id, brew_state=cur_brew.status, time_started=cur_brew.time_started, target_weight=cur_brew.target_weight, timestamp=timestamp, current_flow_rate=current_flow_rate, current_weight=current_weight, estimated_time_remaining=estimated_time_remaining)
             # Add brew_state to the response
             res_dict = res.model_dump()
             return res_dict

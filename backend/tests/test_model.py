@@ -141,6 +141,7 @@ class TestBrewStatus:
             brew_id="test-brew-123",
             brew_state=BrewState.BREWING,
             time_started=timestamp,
+            target_weight=100.0,
             timestamp=timestamp,
             current_flow_rate=0.05,
             current_weight=50.0
@@ -148,6 +149,7 @@ class TestBrewStatus:
         
         assert status.brew_id == "test-brew-123"
         assert status.brew_state == BrewState.BREWING
+        assert status.target_weight == 100.0
         assert status.current_flow_rate == 0.05
         assert status.current_weight == 50.0
 
@@ -158,6 +160,7 @@ class TestBrewStatus:
             brew_id="test-brew-123",
             brew_state=BrewState.BREWING,
             time_started=timestamp,
+            target_weight=100.0,
             timestamp=timestamp,
             current_flow_rate=0.05,
             current_weight=50.0
@@ -167,6 +170,7 @@ class TestBrewStatus:
         
         assert status_dict["brew_id"] == "test-brew-123"
         assert status_dict["brew_state"] == BrewState.BREWING
+        assert status_dict["target_weight"] == 100.0
         assert status_dict["current_flow_rate"] == 0.05
         assert status_dict["current_weight"] == 50.0
 
@@ -179,6 +183,7 @@ class TestBrewStatus:
             brew_id="test-brew",
             brew_state=BrewState.IDLE,
             time_started=timestamp,
+            target_weight=100.0,
             timestamp=timestamp,
             current_flow_rate=0.0,
             current_weight=0.0
@@ -190,6 +195,7 @@ class TestBrewStatus:
             brew_id="test-brew",
             brew_state=BrewState.PAUSED,
             time_started=timestamp,
+            target_weight=100.0,
             timestamp=timestamp,
             current_flow_rate=0.0,
             current_weight=25.0
@@ -201,6 +207,7 @@ class TestBrewStatus:
             brew_id="test-brew",
             brew_state=BrewState.COMPLETED,
             time_started=timestamp,
+            target_weight=100.0,
             timestamp=timestamp,
             current_flow_rate=0.0,
             current_weight=100.0
@@ -214,6 +221,7 @@ class TestBrewStatus:
             brew_id="test-brew",
             brew_state=BrewState.IDLE,
             time_started=timestamp,
+            target_weight=100.0,
             timestamp=timestamp,
             current_flow_rate=0.0,
             current_weight=0.0
@@ -221,3 +229,4 @@ class TestBrewStatus:
         
         assert status.current_flow_rate == 0.0
         assert status.current_weight == 0.0
+        assert status.target_weight == 100.0
