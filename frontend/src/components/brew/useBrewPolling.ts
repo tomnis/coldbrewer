@@ -87,5 +87,24 @@ export function useBrewPolling() {
     }
   }, []);
 
-  return { brewInProgress, fetchBrewInProgress, startPolling, stopPolling };
+  // Clear any pending background poll timeout and reset skipBackground
+  // without stopping the polling cycle
+  // Also abort any in-flight request
+  const clearPendingBackgroundPoll = useCallback(() => {
+    pollRef.current.skipBackground = false;
+    if (pollRef.current.timeoutId != null) {
+      clearTimeout(pollRef.current.timeoutId);
+      pollRef.current.timeoutId = null;
+    }
+    if (pollRef.current.controller) {
+      try { pollRef.current.controller.abort(); } catch {}
+      pollRef.current.controller = null;
+    }
+    // Restart background polling to ensure the chain continues
+    if (pollRef.current.active) {
+      backgroundRefreshBrewInProgress();
+    }
+  }, [backgroundRefreshBrewInProgress]);
+
+  return { brewInProgress, fetchBrewInProgress, startPolling, stopPolling, clearPendingBackgroundPoll };
 }

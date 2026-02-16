@@ -16,7 +16,7 @@ export default function StartBrew() {
   const [targetWeightError, setTargetWeightError] = React.useState<string | null>(null);
 
   const [epsilonError, setEpsilonError] = React.useState<string | null>(null);
-    const { fetchBrewInProgress, toggleFlip } = useBrewContext();
+    const { fetchBrewInProgress, clearPendingBackgroundPoll, toggleFlip } = useBrewContext();
 
     const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
       event.preventDefault();
@@ -77,6 +77,11 @@ export default function StartBrew() {
           // Wait a bit before next retry
           await new Promise(resolve => setTimeout(resolve, retryDelayMs));
         }
+        
+        // Clear any pending background poll and reset skipBackground, then do one final fetch
+        // This ensures background polling resumes with correct data and the scheduled timeout doesn't use stale skipBackground value
+        clearPendingBackgroundPoll();
+        await fetchBrewInProgress();
         
         // Don't call toggleFlip() here - the effect in BrewProvider.tsx
         // automatically flips the card when brewInProgress has valid data
