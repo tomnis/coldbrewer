@@ -72,7 +72,7 @@ function BrewInner() {
   const front = (
     <div className="terminal-box terminal-glow">
       <div className="terminal-header">
-        <span>$ ./coldbrewer --init</span>
+        <span>$ ./brewctl start</span>
       </div>
       <StartBrew />
     </div>
@@ -81,11 +81,11 @@ function BrewInner() {
   const back = (
     <div className="terminal-box terminal-glow">
       <div className="terminal-header">
-        <span>$ ./brew_monitor --verbose</span>
+        <span>$ ./brewctl inspect --verbose</span>
       </div>
       
       <div className="terminal-row">
-        <span className="terminal-label">BREW_ID:</span>
+        <span className="terminal-label">BREW_ID:_</span>
         <span className="terminal-value">{brewId}</span>
       </div>
       <div className="terminal-row">
@@ -98,26 +98,26 @@ function BrewInner() {
       </div>
       <div className="terminal-separator">______________________________________________</div>
       <div className="terminal-row">
-        <span className="terminal-label">STATE</span>
+        <span className="terminal-label">STATE:_</span>
         <span className="terminal-value">{state}</span>
       </div>
       <div className="terminal-row">
-        <span className="terminal-label">FLOW_RATE</span>
+        <span className="terminal-label">FLOW_RATE:_</span>
         <span className="terminal-value">{flowRate}</span>
       </div>
       <div className="terminal-row">
-        <span className="terminal-label">WEIGHT</span>
+        <span className="terminal-label">WEIGHT:_</span>
         <span className="terminal-value">{weight}</span>
       </div>
       {etaString && (
         <div className="terminal-row">
-          <span className="terminal-label">ETA</span>
+          <span className="terminal-label">ETA:_</span>
           <span className="terminal-value">{etaString}</span>
         </div>
       )}
       {remainingString && (
         <div className="terminal-row">
-          <span className="terminal-label">REMAINING</span>
+          <span className="terminal-label">TIME_REMAINING:_</span>
           <span className="terminal-value">{remainingString}</span>
         </div>
       )}
