@@ -81,7 +81,7 @@ function BrewInner() {
 
   const back = (
     <div className="terminal-box terminal-glow">
-      <div className="terminal-header">
+      <div className="terminal-header terminal-row">
         <span>$ ./brewctl inspect --verbose</span>
       </div>
       
@@ -94,20 +94,21 @@ function BrewInner() {
         <span className="terminal-value">{targetWeight}</span>
       </div>
       <div className="terminal-row">
-        <span className="terminal-label">STARTED:_</span>
+        <span className="terminal-label">TIME_STARTED:_</span>
         <span className="terminal-value">{started}</span>
       </div>
-      <div className="terminal-separator">______________________________________________</div>
+      <div hidden="true" className="terminal-separator">+++++++________________________________________________________+++++++</div>
+      <div className="terminal-separator">............_____________________________________________............</div>
       <div className="terminal-row">
         <span className="terminal-label">STATE:_</span>
         <span className="terminal-value">{state}</span>
       </div>
       <div className="terminal-row">
-        <span className="terminal-label">FLOW_RATE:_</span>
+        <span className="terminal-label">CUR_FLOW_RATE:_</span>
         <span className="terminal-value">{flowRate}</span>
       </div>
       <div className="terminal-row">
-        <span className="terminal-label">WEIGHT:_</span>
+        <span className="terminal-label">CUR_WEIGHT:_</span>
         <span className="terminal-value">{weight}</span>
       </div>
       {etaString && (

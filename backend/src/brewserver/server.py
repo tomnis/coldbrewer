@@ -253,7 +253,7 @@ async def brew_status():
             timestamp=timestamp,
             current_flow_rate=None,
             current_weight=None,
-            estimated_time_remaining=None
+            estimated_time_remaining=0.0
         )
         return res.model_dump()
     else:
