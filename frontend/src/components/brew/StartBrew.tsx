@@ -101,6 +101,25 @@ export default function StartBrew() {
           </Text>
         )}
 
+        <label className="terminal-row" htmlFor={targetWeightInputId}>[g] TARGET_WEIGHT:_</label>
+        <Input
+          value={targetWeight}
+          onChange={(e: any) => {
+            setTargetWeight(e.target.value);
+            setTargetWeightError(validateTargetWeightInput(e.target.value));
+          }}
+          type="text"
+          id={targetWeightInputId}
+          placeholder={DEFAULT_TARGET_WEIGHT}
+          aria-label="target_weight"
+          aria-invalid={!!targetWeightError}
+        />
+        {targetWeightError && (
+          <Text className="error-glow" color="red.500" fontSize="sm" mt={1}>
+            {targetWeightError}
+          </Text>
+        )}
+
         <label className="terminal-row" htmlFor={valveIntervalInputId}>[sec] VALVE_INTERVAL:_</label>
         <Input
           value={valveInterval}
@@ -119,26 +138,6 @@ export default function StartBrew() {
             {valveIntervalError}
           </Text>
         )}
-
-
-            <label className="terminal-row" htmlFor={targetWeightInputId}>[g] TARGET_WEIGHT:_</label>
-            <Input
-              value={targetWeight}
-              onChange={(e: any) => {
-                setTargetWeight(e.target.value);
-                setTargetWeightError(validateTargetWeightInput(e.target.value));
-              }}
-              type="text"
-              id={targetWeightInputId}
-              placeholder={DEFAULT_TARGET_WEIGHT}
-              aria-label="target_weight"
-              aria-invalid={!!targetWeightError}
-            />
-            {targetWeightError && (
-              <Text className="error-glow" color="red.500" fontSize="sm" mt={1}>
-                {targetWeightError}
-              </Text>
-            )}
 
         <label className="terminal-row" htmlFor={epsilonInputId}>[g/s] EPSILON:_</label>
         <Input
