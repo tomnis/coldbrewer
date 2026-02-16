@@ -5,7 +5,7 @@
 
   color-scheme: dark;
   color: #33ff33;
-  background-color: #0a0a0a;
+  background-color: #1a1a1a;
 
   font-synthesis: none;
   text-rendering: optimizeLegibility;
@@ -72,14 +72,14 @@
 }
 
 [data-scope="dialog"] {
-  background: #0a0a0a !important;
-  --bg-currentcolor: #0a0a0a !important;
+  background: #1a1a1a !important;
+  --bg-currentcolor: #1a1a1a !important;
   color: #33ff33;
 }
 
 /* Terminal button styles */
 button {
-  background-color: #0a0a0a;
+  background-color: #1a1a1a;
   color: #33ff33;
   border: 1px solid #33ff33;
   font-family: 'VT323', 'Courier New', Courier, monospace;
@@ -126,7 +126,7 @@ input:-ms-input-placeholder {
 }
 
 input {
-  background-color: #0a0a0a;
+  background-color: #1a1a1a;
   color: #33ff33;
   border: 1px solid #33ff33;
   font-family: 'VT323', 'Courier New', Courier, monospace;
@@ -195,11 +195,11 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .flip-card-front {
-  background: #0a0a0a;
+  background: #1a1a1a;
 }
 
 .flip-card-back {
-  background: #0a0a0a;
+  background: #1a1a1a;
   transform: rotateY(180deg);
 }
 
