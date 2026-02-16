@@ -35,6 +35,7 @@ class Brew:
     status: BrewState
     time_started: datetime
     target_weight: float
+    time_completed: Optional[datetime] = None
 
 @dataclass
 class StartBrewRequest(BaseModel):
@@ -52,8 +53,9 @@ class BrewStatus(BaseModel):
     brew_id: str
     brew_state: BrewState
     time_started: datetime
+    time_completed: Optional[datetime] = None
     target_weight: float
     timestamp: datetime
-    current_flow_rate: float
-    current_weight: float
+    current_flow_rate: Optional[float] = None
+    current_weight: Optional[float] = None
     estimated_time_remaining: Optional[float] = None

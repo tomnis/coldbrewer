@@ -183,6 +183,7 @@ async def brew_step_task(brew_id, strategy):
                 if valve_command == ValveCommand.STOP:
                     logger.info(f"Target weight reached, stopping brew {brew_id}")
                     cur_brew.status = BrewState.COMPLETED
+                    cur_brew.time_completed = datetime.now(timezone.utc)
                     scale.disconnect()
                     valve.return_to_start()
                     valve.release()
@@ -240,6 +241,21 @@ async def brew_status():
     global cur_brew
     if cur_brew is None:
         return {"status": "no brew in progress", "brew_state": BrewState.IDLE.value}
+    elif cur_brew.status == BrewState.COMPLETED:
+        # For completed brews, return final stats without computing dynamic values
+        timestamp = datetime.now(timezone.utc)
+        res = BrewStatus(
+            brew_id=cur_brew.id,
+            brew_state=cur_brew.status,
+            time_started=cur_brew.time_started,
+            time_completed=cur_brew.time_completed,
+            target_weight=cur_brew.target_weight,
+            timestamp=timestamp,
+            current_flow_rate=None,
+            current_weight=None,
+            estimated_time_remaining=None
+        )
+        return res.model_dump()
     else:
         timestamp = datetime.now(timezone.utc)
         current_flow_rate = time_series.get_current_flow_rate()

@@ -1,6 +1,9 @@
+import random
+import threading
 from abc import ABC, abstractmethod
 
 from log import logger
+
 
 class AbstractScale(ABC):
     """
@@ -45,7 +48,6 @@ class AbstractScale(ABC):
 
 class MockScale(AbstractScale):
     """A mock implementation of the Scale class for testing purposes."""
-    import random
 
     def __init__(self):
         self._connected = False
@@ -53,6 +55,8 @@ class MockScale(AbstractScale):
         self._units = 'grams'
         self._battery_percentage = 100
         self._auto_off = 10
+        self._updater_thread = None
+        self._stop_event = threading.Event()
 
     @property
     def connected(self) -> bool:
@@ -61,16 +65,34 @@ class MockScale(AbstractScale):
     def connect(self):
         logger.info("[Mock] Scale connecting.")
         self._connected = True
+        self._stop_event.clear()
+        self._start_updater()
 
     def disconnect(self):
-        logger.info("[Mock] Scale resetting  weight, disconnecting.")
+        logger.info("[Mock] Scale resetting weight, disconnecting.")
+        self._stop_updater()
         self._weight = 0.0
         self._connected = False
 
+    def _start_updater(self):
+        """Start the background thread that increments weight every 2 seconds."""
+        self._updater_thread = threading.Thread(target=self._run_updater, daemon=True)
+        self._updater_thread.start()
+
+    def _run_updater(self):
+        """Background loop that increments weight every 2 seconds."""
+        while not self._stop_event.wait(2.0):
+            delta = random.random() / 2
+            self._weight += delta
+
+    def _stop_updater(self):
+        """Stop the background updater thread."""
+        self._stop_event.set()
+        if self._updater_thread is not None:
+            self._updater_thread.join(timeout=1.0)
+
     def get_weight(self) -> float:
-        """Simulate weight changes for testing."""
-        delta = self.random.random() / 2
-        self._weight += delta
+        """Get the current weight in grams from the scale."""
         return self._weight
 
     def get_units(self) -> str:

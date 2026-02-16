@@ -2,11 +2,12 @@ export type BrewState = "brewing" | "paused" | "completed" | "idle";
 
 export interface BrewInProgress {
   brew_id: string;
-  current_flow_rate: string;
-  current_weight: string;
+  current_flow_rate: string | null;
+  current_weight: string | null;
   target_weight: string;
   brew_state: BrewState;
   time_started: string;
+  time_completed: string | null;
   estimated_time_remaining: string | null;
 }
 
