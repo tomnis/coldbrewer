@@ -1,6 +1,7 @@
 import { ChakraProvider } from '@chakra-ui/react'
 import { defaultSystem } from "@chakra-ui/react"
 import Header from "./components/Header";
+import Footer from "./components/Footer";
 import Brew from "./components/Brew";
 import { ThemeProvider } from "./components/theme/ThemeContext";
 
@@ -12,6 +13,7 @@ function App() {
       <ThemeProvider>
         <Header />
         <Brew />
+        <Footer />
       </ThemeProvider>
     </ChakraProvider>
   )
