@@ -151,8 +151,8 @@ async def collect_scale_data_task(brew_id, s):
     global cur_brew
     while brew_id is not None and cur_brew is not None and brew_id == cur_brew.id:
         try:
-            # Only collect data when actively brewing (not paused)
-            if cur_brew.status == BrewState.BREWING:
+            # Collect data when actively brewing or in error state (to recover)
+            if cur_brew.status in (BrewState.BREWING, BrewState.ERROR):
                 scale_state = get_scale_status()
                 # logger.info(f"Scale state: {scale_state}")
                 weight = scale_state.weight
@@ -161,6 +161,8 @@ async def collect_scale_data_task(brew_id, s):
                     # logger.info(f"Brew ID: (writing influxdb data) {cur_brew.id} Weight: {weight}, Battery: {battery_pct}%")
                     # TODO could add a brew_id label here
                     time_series.write_scale_data(weight, battery_pct)
+                    # Reset state to brewing on successful data collection
+                    cur_brew.status = BrewState.BREWING
             await asyncio.sleep(s)
         except Exception as e:
             logger.error(f"Error collecting scale data: {e}")
@@ -176,8 +178,8 @@ async def brew_step_task(brew_id, strategy):
     global cur_brew
     while brew_id is not None and cur_brew is not None and brew_id == cur_brew.id:
         try:
-            # Only execute valve commands when actively brewing (not paused)
-            if cur_brew.status == BrewState.BREWING:
+            # Execute valve commands when actively brewing or in error state (to recover)
+            if cur_brew.status in (BrewState.BREWING, BrewState.ERROR):
                 # get the current flow rate and weight
                 current_flow_rate = time_series.get_current_flow_rate()
                 current_weight = time_series.get_current_weight()
@@ -195,6 +197,8 @@ async def brew_step_task(brew_id, strategy):
                     valve.step_forward()
                 elif valve_command == ValveCommand.BACKWARD:
                     valve.step_backward()
+                # Reset state to brewing on successful valve operation
+                cur_brew.status = BrewState.BREWING
                 await asyncio.sleep(interval)
             else:
                 # When paused, just sleep and check again

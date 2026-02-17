@@ -7,7 +7,7 @@ import PauseResumeButton from "./brew/PauseResumeButton";
 import FlipCard from "./brew/FlipCard";
 
 function formatTimeRemaining(seconds: number | null): string {
-  if (seconds === null || seconds < 0) return "N/A";
+  if (seconds === null || seconds < 0) return "null";
   if (seconds === 0) return "Done!";
   
   const hours = Math.floor(seconds / 3600);
@@ -34,7 +34,7 @@ function formatETA(seconds: number | null): string {
 }
 
 function formatStartedTime(timeStarted: string | undefined): string {
-  if (!timeStarted) return "N/A";
+  if (!timeStarted) return "null";
   
   const date = new Date(timeStarted);
   const hours = date.getHours();
@@ -67,13 +67,13 @@ function BrewInner() {
   const etaString = formatETA(eta);
   const remainingString = formatTimeRemaining(eta);
 
-  const brewId = brewInProgress?.brew_id?.substring(0, 8) || "N/A";
+  const brewId = brewInProgress?.brew_id?.substring(0, 8) || "null";
   const brewState = brewInProgress?.brew_state || "idle";
   const state = brewState.toUpperCase();
   const started = formatStartedTime(brewInProgress?.time_started);
-  const flowRate = brewInProgress?.current_flow_rate ? parseFloat(brewInProgress.current_flow_rate).toFixed(3) + " g/s" : "N/A";
-  const weight = brewInProgress?.current_weight ? parseFloat(brewInProgress.current_weight).toFixed(1) + " g" : "N/A";
-  const targetWeight = brewInProgress?.target_weight ? parseFloat(brewInProgress.target_weight).toFixed(1) + " g" : "N/A";
+  const flowRate = brewInProgress?.current_flow_rate ? parseFloat(brewInProgress.current_flow_rate).toFixed(3) + " g/s" : "null";
+  const weight = brewInProgress?.current_weight ? parseFloat(brewInProgress.current_weight).toFixed(1) + " g" : "null";
+  const targetWeight = brewInProgress?.target_weight ? parseFloat(brewInProgress.target_weight).toFixed(1) + " g" : "null";
 
   const isError = brewState === "error";
   const errorMessage = brewInProgress?.error_message || "Unknown error";
@@ -111,8 +111,9 @@ function BrewInner() {
         <span className="terminal-value">{state}</span>
       </div>
       {isError ? (
-        <div className="terminal-row error-glow" style={{ color: "#ff6b6b", padding: "1rem" }}>
-        MESSAGE:_ {errorMessage}
+        <div className="terminal-row error-glow" style={{ color: "#ff6b6b"}}>
+        <span className="terminal-label">  MESSAGE:_</span>
+        <span className="terminal-value">{errorMessage}</span>
         </div>
       ) : (
           <div></div>
