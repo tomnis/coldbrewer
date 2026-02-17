@@ -34,11 +34,12 @@ class TestBrewState:
     def test_brew_state_iteration(self):
         """Test that all BrewState values can be iterated."""
         states = list(BrewState)
-        assert len(states) == 4
+        assert len(states) == 5
         assert BrewState.IDLE in states
         assert BrewState.BREWING in states
         assert BrewState.PAUSED in states
         assert BrewState.COMPLETED in states
+        assert BrewState.ERROR in states
 
     def test_brew_state_from_string(self):
         """Test creating BrewState from string value."""

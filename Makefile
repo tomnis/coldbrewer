@@ -6,6 +6,12 @@ build-prod-image:
 
 testBackend:
 	cd backend && pytest tests
+
+testFrontend:
+	cd frontend && npm run test:run
+
+test: testBackend testFrontend
+
 #prod:
 #    cd frontend && npm install && npm run build && cd ..
 #    mkdir backend/src/build
