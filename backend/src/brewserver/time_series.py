@@ -22,22 +22,19 @@ class AbstractTimeSeries(ABC):
         pass
 
     @abstractmethod
-    def get_current_flow_rate(self, start_time_filter: datetime | None = None) -> float:
-        """Get the current flow rate from the time series.
-        
-        Args:
-            start_time_filter: If provided, only include readings from this time onwards.
-                              Any readings before this time will be filtered out prior to
-                              further processing.
-        """
+    def get_current_flow_rate(self) -> float:
+        """Get the current flow rate from the time series."""
         pass
 
-    def get_recent_weight_readings(self, duration_seconds: int = COLDBREW_VALVE_INTERVAL_SECONDS) -> List[Tuple[datetime, float]]:
+    @abstractmethod
+    def get_recent_weight_readings(self, duration_seconds: int = COLDBREW_VALVE_INTERVAL_SECONDS, start_time_filter: datetime | None = None) -> List[Tuple[datetime, float]]:
         """
         Read raw sequential weight values from InfluxDB.
         
         Args:
             duration_seconds: How many seconds of history to query
+            start_time_filter: If provided, only include readings from this time onwards.
+                              Any readings before this time will be filtered out.
             
         Returns:
             List of (timestamp, weight) tuples sorted by time ascending
@@ -82,12 +79,14 @@ class InfluxDBTimeSeries(AbstractTimeSeries):
         return result.get_value()
 
     @retry(tries=10, delay=4)
-    def get_recent_weight_readings(self, duration_seconds: int = COLDBREW_VALVE_INTERVAL_SECONDS) -> List[Tuple[datetime, float]]:
+    def get_recent_weight_readings(self, duration_seconds: int = COLDBREW_VALVE_INTERVAL_SECONDS, start_time_filter: datetime | None = None) -> List[Tuple[datetime, float]]:
         """
         Read raw sequential weight values from InfluxDB.
         
         Args:
             duration_seconds: How many seconds of history to query
+            start_time_filter: If provided, only include readings from this time onwards.
+                              Any readings before this time will be filtered out.
             
         Returns:
             List of (timestamp, weight) tuples sorted by time ascending
@@ -105,6 +104,10 @@ class InfluxDBTimeSeries(AbstractTimeSeries):
                 value = record.get_value()
                 if value is not None:
                     readings.append((timestamp, value))
+        
+        # Filter out readings before start_time_filter if provided
+        if start_time_filter is not None:
+            readings = [(ts, wt) for ts, wt in readings if ts >= start_time_filter]
         
         # Sort by timestamp ascending
         readings.sort(key=lambda x: x[0])
@@ -145,18 +148,13 @@ class InfluxDBTimeSeries(AbstractTimeSeries):
         return rate
 
     @retry(tries=10, delay=4)
-    def get_current_flow_rate(self, start_time_filter: datetime | None = None) -> float | None:
+    def get_current_flow_rate(self) -> float | None:
         """
         Get the current flow rate by calculating derivatives from raw weight readings.
         
         This method reads sequential weight values from InfluxDB and calculates
         the derivative (rate of change) in Python, rather than using InfluxDB's
         built-in aggregate.rate() function.
-        
-        Args:
-            start_time_filter: If provided, filter out any readings from before this time.
-                              This is useful when starting a new brew after a previous brew
-                              has finished (to avoid picking up stale weight data).
         """
         # Read raw sequential weight values (aligned with VALVE_INTERVAL)
         readings = self.get_recent_weight_readings(duration_seconds=COLDBREW_VALVE_INTERVAL_SECONDS)
@@ -164,13 +162,6 @@ class InfluxDBTimeSeries(AbstractTimeSeries):
         if not readings:
             logger.warning("No weight readings available for flow rate calculation")
             return None
-        
-        # Filter out readings before start_time_filter if provided
-        if start_time_filter is not None:
-            readings = [(ts, wt) for ts, wt in readings if ts >= start_time_filter]
-            if not readings:
-                logger.warning(f"No weight readings found after {start_time_filter}")
-                return None
         
         # Calculate flow rate from derivatives
         return self.calculate_flow_rate_from_derivatives(readings)

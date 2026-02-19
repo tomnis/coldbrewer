@@ -219,7 +219,8 @@ async def brew_step_task(brew_id, strategy):
             if cur_brew.status in (BrewState.BREWING, BrewState.ERROR):
                 # get the current flow rate and weight
                 # Use time_started to filter out readings from previous brews
-                current_flow_rate = time_series.get_current_flow_rate(start_time_filter=cur_brew.time_started)
+                readings = time_series.get_recent_weight_readings(duration_seconds=COLDBREW_VALVE_INTERVAL_SECONDS, start_time_filter=cur_brew.time_started)
+                current_flow_rate = time_series.calculate_flow_rate_from_derivatives(readings) if readings else None
                 current_weight = time_series.get_current_weight()
                 (valve_command, interval) = strategy.step(current_flow_rate, current_weight)
                 
@@ -323,7 +324,8 @@ async def brew_status():
     else:
         timestamp = datetime.now(timezone.utc)
         # Use time_started to filter out readings from previous brews
-        current_flow_rate = time_series.get_current_flow_rate(start_time_filter=cur_brew.time_started)
+        readings = time_series.get_recent_weight_readings(duration_seconds=COLDBREW_VALVE_INTERVAL_SECONDS, start_time_filter=cur_brew.time_started)
+        current_flow_rate = time_series.calculate_flow_rate_from_derivatives(readings) if readings else None
         current_weight = scale.get_weight()
         if current_weight is None:
             res = {"status": "scale not connected", "brew_state": cur_brew.status.value}
@@ -471,7 +473,8 @@ def read_flow_rate():
     global cur_brew
     # If there's an active brew, filter by time_started to avoid stale data from previous brews
     if cur_brew is not None and cur_brew.time_started is not None:
-        flow_rate = time_series.get_current_flow_rate(start_time_filter=cur_brew.time_started)
+        readings = time_series.get_recent_weight_readings(duration_seconds=COLDBREW_VALVE_INTERVAL_SECONDS, start_time_filter=cur_brew.time_started)
+        flow_rate = time_series.calculate_flow_rate_from_derivatives(readings) if readings else None
     else:
         flow_rate = time_series.get_current_flow_rate()
     return {"brew_id": cur_brew.id if cur_brew else None, "flow_rate": flow_rate}

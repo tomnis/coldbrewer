@@ -35,10 +35,20 @@ def mock_valve():
 @pytest.fixture
 def mock_time_series():
     """Mock time series for testing."""
+    from datetime import datetime, timezone
     ts = MagicMock()
     ts.get_current_flow_rate.return_value = 5.0
     ts.get_current_weight.return_value = 100.0
     ts.write_scale_data.return_value = None
+    # Mock methods that return lists/tuples to avoid MagicMock format errors
+    # Return sample data so calculations work properly
+    now = datetime.now(timezone.utc)
+    ts.get_recent_weight_readings.return_value = [
+        (now, 100.0),
+        (now, 101.0),
+        (now, 102.0),
+    ]
+    ts.calculate_flow_rate_from_derivatives.return_value = 5.0
     return ts
 
 
@@ -65,17 +75,14 @@ def client(mock_scale, mock_valve, mock_time_series):
 
     # Reset global state after each test
     import brewserver.server as server_module
-    server_module.cur_brew_id = None
-    server_module.brew_state = None
+    server_module.cur_brew = None
 
 
 @pytest.fixture(autouse=True)
 def reset_globals():
     """Reset global state before each test."""
     import brewserver.server as server_module
-    server_module.cur_brew_id = None
-    server_module.brew_state = None
+    server_module.cur_brew = None
     yield
     # Cleanup after test
-    server_module.cur_brew_id = None
-    server_module.brew_state = None
+    server_module.cur_brew = None

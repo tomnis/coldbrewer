@@ -72,6 +72,30 @@ export const themes: Theme[] = [
       inputPlaceholder: "#333333",
     },
   },
+  {
+    name: "Simple",
+    id: "simple",
+    colors: {
+      primary: "#333333",
+      primaryGlow: "#333333",
+      bg: "#e8e8e8",
+      bgSecondary: "#dcdcdc",
+      border: "#555555",
+      inputPlaceholder: "#999999",
+    },
+  },
+  {
+    name: "Blue-ish",
+    id: "blueish",
+    colors: {
+      primary: "#cccccc",
+      primaryGlow: "#cccccc",
+      bg: "#454b69",
+      bgSecondary: "#363b52",
+      border: "#5a6183",
+      inputPlaceholder: "#ffcb6b",
+    },
+  },
 ];
 
 export const defaultTheme = themes[0];
