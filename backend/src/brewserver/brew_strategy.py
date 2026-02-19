@@ -16,12 +16,15 @@ class AbstractBrewStrategy(ABC):
 class DefaultBrewStrategy(AbstractBrewStrategy):
     """A simple default brewing strategy, naively opening or closing the valve based on the current flow rate."""
 
-    def __init__(self, target_flow_rate=COLDBREW_TARGET_FLOW_RATE, scale_interval=COLDBREW_SCALE_READ_INTERVAL, valve_interval=COLDBREW_VALVE_INTERVAL_SECONDS, epsilon=COLDBREW_EPSILON, target_weight=COLDBREW_TARGET_WEIGHT_GRAMS):
+    def __init__(self, target_flow_rate=COLDBREW_TARGET_FLOW_RATE, scale_interval=COLDBREW_SCALE_READ_INTERVAL, valve_interval=COLDBREW_VALVE_INTERVAL_SECONDS, epsilon=COLDBREW_EPSILON, target_weight=COLDBREW_TARGET_WEIGHT_GRAMS, vessel_weight=COLDBREW_VESSEL_WEIGHT_GRAMS):
         self.target_flow_rate = target_flow_rate
         self.scale_interval = scale_interval
         self.valve_interval = valve_interval
         self.epsilon = epsilon
         self.target_weight = target_weight
+        # target_weight now includes vessel_weight, so calculate coffee-only target
+        self.vessel_weight = vessel_weight
+        self.coffee_target = target_weight - vessel_weight
 
     @classmethod
     def from_request(cls, req: StartBrewRequest) -> AbstractBrewStrategy:
@@ -29,13 +32,17 @@ class DefaultBrewStrategy(AbstractBrewStrategy):
                                    scale_interval=req.scale_interval,
                                    valve_interval=req.valve_interval,
                                    epsilon=req.epsilon,
-                                   target_weight=req.target_weight)
+                                   target_weight=req.target_weight,
+                                   vessel_weight=req.vessel_weight)
 
     def step(self, current_flow_rate: Optional[float], current_weight: Optional[float]) -> Tuple[ValveCommand, int]:
         """Perform a single step in the default brewing strategy."""
-        # Check if we've reached the target weight
-        if current_weight is not None and current_weight >= self.target_weight:
-            logger.info(f"target weight reached: {current_weight}g >= {self.target_weight}g")
+        # target_weight includes vessel_weight, so we need to subtract vessel_weight from current_weight
+        # to get the coffee weight, then compare against coffee_target
+        coffee_weight = (current_weight - self.vessel_weight) if current_weight is not None else None
+        # Check if we've reached the target coffee weight
+        if coffee_weight is not None and coffee_weight >= self.coffee_target:
+            logger.info(f"target weight reached: {coffee_weight}g (coffee) >= {self.coffee_target}g (coffee target)")
             return ValveCommand.STOP, 0
         
         current_flow_rate_str = "None" if current_flow_rate is None else f"{current_flow_rate:.4f}g/s"

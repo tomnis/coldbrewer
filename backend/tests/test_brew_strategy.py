@@ -20,7 +20,8 @@ class TestDefaultBrewStrategy:
 
     def test_step_returns_stop_when_target_weight_reached(self):
         """Test that step returns STOP when current weight >= target weight."""
-        strategy = DefaultBrewStrategy(target_weight=100.0, target_flow_rate=0.05)
+        # Use vessel_weight=0 to test with target_weight as coffee-only (for test clarity)
+        strategy = DefaultBrewStrategy(target_weight=100.0, target_flow_rate=0.05, vessel_weight=0)
         
         # Current weight exceeds target - use positional args
         command, interval = strategy.step(0.05, 100.0)
@@ -30,7 +31,7 @@ class TestDefaultBrewStrategy:
 
     def test_step_returns_stop_when_weight_exceeds_target(self):
         """Test that step returns STOP when current weight exceeds target."""
-        strategy = DefaultBrewStrategy(target_weight=100.0, target_flow_rate=0.05)
+        strategy = DefaultBrewStrategy(target_weight=100.0, target_flow_rate=0.05, vessel_weight=0)
         
         # Current weight well exceeds target
         command, interval = strategy.step(0.07, 150.0)
@@ -40,7 +41,7 @@ class TestDefaultBrewStrategy:
 
     def test_step_returns_forward_when_flow_rate_too_slow(self):
         """Test that step returns FORWARD when flow rate is below target."""
-        strategy = DefaultBrewStrategy(target_weight=100.0, target_flow_rate=0.05, epsilon=0.008)
+        strategy = DefaultBrewStrategy(target_weight=100.0, target_flow_rate=0.05, epsilon=0.008, vessel_weight=0)
         
         command, interval = strategy.step(0.03, 50.0)
         
@@ -49,7 +50,7 @@ class TestDefaultBrewStrategy:
 
     def test_step_returns_backward_when_flow_rate_too_fast(self):
         """Test that step returns BACKWARD when flow rate is above target."""
-        strategy = DefaultBrewStrategy(target_weight=100.0, target_flow_rate=0.05, epsilon=0.008)
+        strategy = DefaultBrewStrategy(target_weight=100.0, target_flow_rate=0.05, epsilon=0.008, vessel_weight=0)
         
         command, interval = strategy.step(0.08, 50.0)
         
@@ -58,7 +59,7 @@ class TestDefaultBrewStrategy:
 
     def test_step_returns_noop_when_flow_rate_within_epsilon(self):
         """Test that step returns NOOP when flow rate is within epsilon of target."""
-        strategy = DefaultBrewStrategy(target_weight=100.0, target_flow_rate=0.05, epsilon=0.008)
+        strategy = DefaultBrewStrategy(target_weight=100.0, target_flow_rate=0.05, epsilon=0.008, vessel_weight=0)
         
         # Flow rate exactly at target (within epsilon)
         command, interval = strategy.step(0.05, 50.0)
@@ -69,7 +70,7 @@ class TestDefaultBrewStrategy:
 
     def test_step_returns_noop_when_flow_rate_just_within_epsilon_upper(self):
         """Test NOOP when flow rate is slightly above but within epsilon."""
-        strategy = DefaultBrewStrategy(target_weight=100.0, target_flow_rate=0.05, epsilon=0.008)
+        strategy = DefaultBrewStrategy(target_weight=100.0, target_flow_rate=0.05, epsilon=0.008, vessel_weight=0)
         
         # 0.05 + 0.008 = 0.058, exactly at epsilon boundary
         command, interval = strategy.step(0.058, 50.0)
@@ -78,7 +79,7 @@ class TestDefaultBrewStrategy:
 
     def test_step_returns_noop_when_flow_rate_just_within_epsilon_lower(self):
         """Test NOOP when flow rate is slightly below but within epsilon."""
-        strategy = DefaultBrewStrategy(target_weight=100.0, target_flow_rate=0.05, epsilon=0.008)
+        strategy = DefaultBrewStrategy(target_weight=100.0, target_flow_rate=0.05, epsilon=0.008, vessel_weight=0)
         
         # 0.05 - 0.008 = 0.042, exactly at epsilon boundary
         command, interval = strategy.step(0.042, 50.0)
@@ -87,7 +88,7 @@ class TestDefaultBrewStrategy:
 
     def test_step_returns_forward_when_flow_rate_below_epsilon_boundary(self):
         """Test FORWARD when flow rate is below epsilon boundary."""
-        strategy = DefaultBrewStrategy(target_weight=100.0, target_flow_rate=0.05, epsilon=0.008)
+        strategy = DefaultBrewStrategy(target_weight=100.0, target_flow_rate=0.05, epsilon=0.008, vessel_weight=0)
         
         # Just below epsilon boundary
         command, interval = strategy.step(0.041, 50.0)
@@ -96,7 +97,7 @@ class TestDefaultBrewStrategy:
 
     def test_step_returns_backward_when_flow_rate_above_epsilon_boundary(self):
         """Test BACKWARD when flow rate is above epsilon boundary."""
-        strategy = DefaultBrewStrategy(target_weight=100.0, target_flow_rate=0.05, epsilon=0.008)
+        strategy = DefaultBrewStrategy(target_weight=100.0, target_flow_rate=0.05, epsilon=0.008, vessel_weight=0)
         
         # Just above epsilon boundary
         command, interval = strategy.step(0.059, 50.0)
@@ -105,7 +106,7 @@ class TestDefaultBrewStrategy:
 
     def test_step_returns_noop_when_flow_rate_none(self):
         """Test that step returns NOOP when flow rate is None (insufficient data)."""
-        strategy = DefaultBrewStrategy(target_weight=100.0, target_flow_rate=0.05)
+        strategy = DefaultBrewStrategy(target_weight=100.0, target_flow_rate=0.05, vessel_weight=0)
         
         command, interval = strategy.step(None, 50.0)
         
@@ -114,13 +115,27 @@ class TestDefaultBrewStrategy:
 
     def test_step_weight_check_before_flow_rate(self):
         """Test that weight check takes precedence over flow rate check."""
-        strategy = DefaultBrewStrategy(target_weight=50.0, target_flow_rate=0.05)
+        strategy = DefaultBrewStrategy(target_weight=50.0, target_flow_rate=0.05, vessel_weight=0)
         
         # Weight exceeded but flow rate would suggest forward
         command, interval = strategy.step(0.03, 100.0)
         
         # Should return STOP because weight target is reached
         assert command.value == ValveCommand.STOP.value
+
+    def test_step_with_vessel_weight(self):
+        """Test that step correctly handles target_weight that includes vessel weight."""
+        # target_weight=1337 includes vessel_weight=229, so coffee_target = 1108
+        strategy = DefaultBrewStrategy(target_weight=1337, vessel_weight=229, target_flow_rate=0.05)
+        
+        # When current_weight=1337 (vessel + 1108g coffee), should stop
+        command, interval = strategy.step(0.05, 1337)
+        assert command.value == ValveCommand.STOP.value
+        assert interval == 0
+        
+        # When current_weight=1336 (vessel + 1107g coffee), should not stop yet
+        command, interval = strategy.step(0.03, 1336)
+        assert command.value == ValveCommand.FORWARD.value
 
     def test_from_request_creates_strategy_with_correct_params(self):
         """Test that from_request creates a strategy with correct parameters."""
