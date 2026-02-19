@@ -218,7 +218,8 @@ async def brew_step_task(brew_id, strategy):
             # Execute valve commands when actively brewing or in error state (to recover)
             if cur_brew.status in (BrewState.BREWING, BrewState.ERROR):
                 # get the current flow rate and weight
-                current_flow_rate = time_series.get_current_flow_rate()
+                # Use time_started to filter out readings from previous brews
+                current_flow_rate = time_series.get_flow_rate_since(cur_brew.time_started)
                 current_weight = time_series.get_current_weight()
                 (valve_command, interval) = strategy.step(current_flow_rate, current_weight)
                 
@@ -321,7 +322,8 @@ async def brew_status():
         return res.model_dump()
     else:
         timestamp = datetime.now(timezone.utc)
-        current_flow_rate = time_series.get_current_flow_rate()
+        # Use time_started to filter out readings from previous brews
+        current_flow_rate = time_series.get_flow_rate_since(cur_brew.time_started)
         current_weight = scale.get_weight()
         if current_weight is None:
             res = {"status": "scale not connected", "brew_state": cur_brew.status.value}
@@ -467,7 +469,11 @@ async def kill_brew():
 def read_flow_rate():
     """Read the current flow rate from the time series."""
     global cur_brew
-    flow_rate = time_series.get_current_flow_rate()
+    # If there's an active brew, filter by time_started to avoid stale data from previous brews
+    if cur_brew is not None and cur_brew.time_started is not None:
+        flow_rate = time_series.get_flow_rate_since(cur_brew.time_started)
+    else:
+        flow_rate = time_series.get_current_flow_rate()
     return {"brew_id": cur_brew.id if cur_brew else None, "flow_rate": flow_rate}
 
 

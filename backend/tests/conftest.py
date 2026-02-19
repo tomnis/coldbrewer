@@ -39,6 +39,7 @@ def mock_time_series():
     ts.get_current_flow_rate.return_value = 5.0
     ts.get_current_weight.return_value = 100.0
     ts.write_scale_data.return_value = None
+    ts.get_flow_rate_since.return_value = 5.0
     return ts
 
 
