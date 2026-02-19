@@ -35,6 +35,7 @@ class Brew:
     id: str
     status: BrewState
     time_started: datetime
+    vessel_weight: float
     target_weight: float
     time_completed: Optional[datetime] = None
     error_message: Optional[str] = None
@@ -45,6 +46,7 @@ class StartBrewRequest(BaseModel):
     scale_interval: float = COLDBREW_SCALE_READ_INTERVAL
     valve_interval: float = COLDBREW_VALVE_INTERVAL_SECONDS
     target_weight: float = COLDBREW_TARGET_WEIGHT_GRAMS
+    vessel_weight: float = COLDBREW_VESSEL_WEIGHT_GRAMS
     epsilon: float = COLDBREW_EPSILON
     # TODO strategy: str
 
