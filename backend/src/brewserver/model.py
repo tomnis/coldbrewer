@@ -14,6 +14,7 @@ class BrewStrategyType(str, Enum):
     KALMAN_PID = "kalman_pid"
     SMITH_PREDICTOR_ADVANCED = "smith_predictor_advanced"
     ADAPTIVE_GAIN_SCHEDULING = "adaptive_gain_scheduling"
+    MPC = "mpc"
 
 
 class BrewState(str, Enum):

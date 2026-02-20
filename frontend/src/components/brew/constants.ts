@@ -15,7 +15,7 @@ export const POLL_INTERVAL_MS = 4000;
 export const DEFAULT_TARGET_WEIGHT = "1337";
 
 // Strategy types (must match backend BrewStrategyType enum)
-export type StrategyType = "default" | "pid" | "kalman_pid" | "smith_predictor_advanced" | "adaptive_gain_scheduling";
+export type StrategyType = "default" | "pid" | "kalman_pid" | "smith_predictor_advanced" | "adaptive_gain_scheduling" | "mpc";
 
 export interface StrategyParam {
   name: string;
@@ -272,6 +272,55 @@ export const STRATEGIES: Strategy[] = [
         placeholder: "0.01",
         defaultValue: "0.01",
         description: "How fast gains adapt when sustained error is detected",
+      },
+    ],
+  },
+  {
+    id: "mpc",
+    name: "MPC (Model Predictive)",
+    description: "Predictive control that optimizes valve commands over a future horizon for best tracking",
+    params: [
+      {
+        name: "horizon",
+        label: "Prediction Horizon",
+        placeholder: "15",
+        defaultValue: "15",
+        description: "Number of future timesteps to predict",
+      },
+      {
+        name: "plant_gain",
+        label: "Plant Gain",
+        placeholder: "0.01",
+        defaultValue: "0.01",
+        description: "Steady-state flow rate change per valve step",
+      },
+      {
+        name: "plant_time_constant",
+        label: "Plant Time Constant",
+        placeholder: "10.0",
+        defaultValue: "10.0",
+        description: "Time constant of the first-order plant model",
+      },
+      {
+        name: "q_error",
+        label: "Error Weight (Qe)",
+        placeholder: "1.0",
+        defaultValue: "1.0",
+        description: "Weight on tracking error in cost function",
+      },
+      {
+        name: "q_control",
+        label: "Control Weight (Qu)",
+        placeholder: "0.1",
+        defaultValue: "0.1",
+        description: "Weight on control effort (prevents aggressive moves)",
+      },
+      {
+        name: "q_delta",
+        label: "Delta Weight (Qd)",
+        placeholder: "0.5",
+        defaultValue: "0.5",
+        description: "Weight on control rate for smoothness",
       },
     ],
   },
