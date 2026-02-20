@@ -12,6 +12,8 @@ class BrewStrategyType(str, Enum):
     DEFAULT = "default"
     PID = "pid"
     KALMAN_PID = "kalman_pid"
+    SMITH_PREDICTOR_ADVANCED = "smith_predictor_advanced"
+    ADAPTIVE_GAIN_SCHEDULING = "adaptive_gain_scheduling"
 
 
 class BrewState(str, Enum):
