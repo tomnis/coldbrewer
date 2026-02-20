@@ -67,6 +67,48 @@ export const STRATEGIES: Strategy[] = [
       },
     ],
   },
+  {
+    id: "kalman_pid",
+    name: "Kalman PID",
+    description: "PID controller with Kalman Filter for noise reduction on flow rate readings",
+    params: [
+      {
+        name: "kp",
+        label: "Kp (Proportional Gain)",
+        placeholder: "1.0",
+        defaultValue: "1.0",
+        description: "Controls response to current error",
+      },
+      {
+        name: "ki",
+        label: "Ki (Integral Gain)",
+        placeholder: "0.1",
+        defaultValue: "0.1",
+        description: "Controls response to accumulated error",
+      },
+      {
+        name: "kd",
+        label: "Kd (Derivative Gain)",
+        placeholder: "0.05",
+        defaultValue: "0.05",
+        description: "Controls response to rate of error change",
+      },
+      {
+        name: "q",
+        label: "Q (Process Noise)",
+        placeholder: "0.001",
+        defaultValue: "0.001",
+        description: "How much the flow naturally varies. Higher = more responsive to changes",
+      },
+      {
+        name: "r",
+        label: "R (Measurement Noise)",
+        placeholder: "0.1",
+        defaultValue: "0.1",
+        description: "How noisy the sensor readings are. Higher = more smoothing",
+      },
+    ],
+  },
 ];
 
 export const DEFAULT_STRATEGY: StrategyType = "default";
