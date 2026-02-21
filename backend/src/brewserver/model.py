@@ -32,6 +32,41 @@ class ValveCommand(Enum):
     STOP = 3
 
 
+# ==================== Error Response Models ====================
+
+class ErrorSeverity(str, Enum):
+    """Severity level for errors."""
+    INFO = "info"
+    WARNING = "warning"
+    ERROR = "error"
+    CRITICAL = "critical"
+
+
+class ErrorCategory(str, Enum):
+    """Category of error for better frontend handling."""
+    SCALE = "scale"
+    VALVE = "valve"
+    TIMESERIES = "timeseries"
+    BREW = "brew"
+    NETWORK = "network"
+    HARDWARE = "hardware"
+    CONFIGURATION = "configuration"
+
+
+class BrewErrorResponse(BaseModel):
+    """Enhanced error response for frontend consumption."""
+    error: str
+    error_detailed: Optional[str] = None
+    category: ErrorCategory
+    severity: ErrorSeverity
+    timestamp: datetime
+    retryable: bool
+    brew_id: Optional[str] = None
+    recovery_suggestion: Optional[str] = None
+    # Original exception type for debugging
+    exception_type: Optional[str] = None
+
+
 class ScaleStatus(BaseModel):
     connected: bool
     weight: Optional[float] = None
@@ -63,7 +98,22 @@ class StartBrewRequest(BaseModel):
     strategy_params: Dict[str, Any] = {}
 
 
-# TODO add startbrewresponse
+# Response Models
+
+class StartBrewResponse(BaseModel):
+    status: str
+    brew_id: str
+
+
+class BrewCommandResponse(BaseModel):
+    status: str
+    brew_id: Optional[str] = None
+    brew_state: Optional[BrewState] = None
+
+
+class FlowRateResponse(BaseModel):
+    brew_id: Optional[str] = None
+    flow_rate: Optional[float] = None
 
 
 class BrewStatus(BaseModel):
@@ -79,3 +129,22 @@ class BrewStatus(BaseModel):
     estimated_time_remaining: Optional[float] = None
     error_message: Optional[str] = None
     valve_position: Optional[int] = None  # 0-199 for one full rotation
+
+
+# ==================== Health Check Models ====================
+
+class HealthStatus(str, Enum):
+    """Health status of the system."""
+    HEALTHY = "healthy"
+    DEGRADED = "degraded"
+    UNHEALTHY = "unhealthy"
+
+
+class HealthResponse(BaseModel):
+    """Response model for the health check endpoint."""
+    status: HealthStatus
+    scale: dict  # connected, battery_pct
+    valve: dict  # available
+    influxdb: dict  # connected, error message if any
+    brew: dict  # in_progress, brew_id, status
+    timestamp: datetime

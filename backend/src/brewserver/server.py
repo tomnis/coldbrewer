@@ -3,6 +3,7 @@ import uuid
 import time
 import os
 import traceback
+from typing import Optional
 
 from contextlib import asynccontextmanager
 from log import logger
@@ -54,12 +55,31 @@ from typing import Annotated
 from scale import AbstractScale
 from brew_strategy import create_brew_strategy, BREW_STRATEGY_REGISTRY
 from model import *
-from model import Brew, BrewState
+from model import (
+    Brew,
+    BrewState,
+    StartBrewResponse,
+    BrewCommandResponse,
+    FlowRateResponse,
+    BrewErrorResponse,
+    HealthStatus,
+    HealthResponse,
+)
 from valve import AbstractValve
 from time_series import AbstractTimeSeries
 from time_series import InfluxDBTimeSeries
 from brew_quality import compute_quality_score, get_score_grade, BrewQualityMetrics
 from datetime import datetime, timezone
+
+# Import custom exceptions and error handling
+from exceptions import (
+    ScaleConnectionError,
+    ScaleReadError,
+    BrewConflictError,
+    TransientError,
+    PermanentError,
+)
+from error_handling import handle_exception
 
 # Single instance of current brew instead of separate id and state
 cur_brew: Brew | None = None
@@ -170,6 +190,81 @@ def read_scale():
     return get_scale_status()
 
 
+@app.get("/api/health")
+def health_check():
+    """
+    Health check endpoint that reports the status of all critical system components.
+    Useful for load balancers, monitoring systems, and Docker healthchecks.
+    """
+    global cur_brew
+    
+    # Check scale status
+    scale_health = {"connected": False, "battery_pct": None}
+    try:
+        scale_status = get_scale_status()
+        scale_health = {
+            "connected": scale_status.connected,
+            "battery_pct": scale_status.battery_pct,
+        }
+    except Exception as e:
+        logger.error(f"Error checking scale health: {e}")
+    
+    # Check valve availability (try to get position)
+    valve_health = {"available": False}
+    try:
+        # The valve is available if it's not currently in use by another brew
+        # We'll consider it available if we can access it without error
+        position = valve.get_position()
+        valve_health = {"available": True, "position": position}
+    except Exception as e:
+        logger.error(f"Error checking valve health: {e}")
+    
+    # Check InfluxDB connectivity
+    influxdb_health = {"connected": True, "error": None}
+    try:
+        # Try a simple query to check connectivity
+        time_series.get_current_weight()
+    except Exception as e:
+        influxdb_health = {"connected": False, "error": str(e)}
+        logger.error(f"Error checking InfluxDB health: {e}")
+    
+    # Check brew status
+    brew_health = {
+        "in_progress": cur_brew is not None and cur_brew.status in (BrewState.BREWING, BrewState.PAUSED),
+        "brew_id": cur_brew.id if cur_brew else None,
+        "status": cur_brew.status.value if cur_brew else "idle",
+    }
+    
+    # Determine overall health status
+    # Healthy: all components working
+    # Degraded: some components have issues but core functionality works
+    # Unhealthy: critical components are down
+    
+    issues = []
+    if not scale_health["connected"]:
+        issues.append("scale not connected")
+    if not valve_health["available"]:
+        issues.append("valve not available")
+    if not influxdb_health["connected"]:
+        issues.append("influxdb not connected")
+    
+    if len(issues) == 0:
+        overall_status = HealthStatus.HEALTHY
+    elif len(issues) <= 2:
+        overall_status = HealthStatus.DEGRADED
+    else:
+        overall_status = HealthStatus.UNHEALTHY
+    
+    return HealthResponse(
+        status=overall_status,
+        scale=scale_health,
+        valve=valve_health,
+        influxdb=influxdb_health,
+        brew=brew_health,
+        timestamp=datetime.now(timezone.utc),
+    )
+
+
 #### BREW ENDPOINTS ####
 class MatchBrewId(BaseModel):
     """ Middleware to match brew_id. Used to restrict execution to matching id pairs."""
@@ -205,9 +300,12 @@ async def collect_scale_data_task(brew_id, s):
             await asyncio.sleep(s)
         except Exception as e:
             logger.error(f"Error collecting scale data: {e}")
+            # Use enhanced error handling
+            error_info = handle_exception(e, brew_id=brew_id)
             if cur_brew is not None:
                 cur_brew.status = BrewState.ERROR
-                cur_brew.error_message = str(e)
+                # Store both simple message and detailed error info
+                cur_brew.error_message = error_info.get("error", str(e))
             await asyncio.sleep(s)
 
 
@@ -248,9 +346,12 @@ async def brew_step_task(brew_id, strategy):
             logger.error(f"Error in brew step: {e}")
             traceback.print_exc()
 
+            # Use enhanced error handling
+            error_info = handle_exception(e, brew_id=brew_id)
             if cur_brew is not None:
                 cur_brew.status = BrewState.ERROR
-                cur_brew.error_message = str(e)
+                # Store the enhanced error message
+                cur_brew.error_message = error_info.get("error", str(e))
             await asyncio.sleep(strategy.valve_interval)
 
 
@@ -278,16 +379,40 @@ def _get_default_base_params() -> dict:
     }
 
 
-@app.post("/api/brew/start")
+@app.post("/api/brew/start", response_model=StartBrewResponse)
 async def start_brew(req: StartBrewRequest | None = None):
-    logger.info(f"brew start request: {req}")
     """Start a brew with the given brew ID."""
     global cur_brew
     global scale
-    if scale is None or not scale.connected:
-        scale = create_scale()
-        scale.connect()
-    if cur_brew is None or cur_brew.status == BrewState.COMPLETED or cur_brew.status == BrewState.ERROR:
+    
+    logger.info(f"brew start request: {req}")
+    
+    # Check if a brew is already in progress
+    if cur_brew is not None and cur_brew.status in (BrewState.BREWING, BrewState.PAUSED):
+        # Use custom exception for better error handling
+        error_resp = handle_exception(
+            BrewConflictError(cur_brew.id),
+            brew_id=cur_brew.id if cur_brew else None
+        )
+        raise HTTPException(status_code=409, detail=error_resp)
+    
+    # Try to connect to scale
+    try:
+        if scale is None or not scale.connected:
+            scale = create_scale()
+            scale.connect()
+            if not scale.connected:
+                error_resp = handle_exception(
+                    ScaleConnectionError("Could not connect to scale"),
+                    brew_id=None
+                )
+                raise HTTPException(status_code=503, detail=error_resp)
+    except ScaleConnectionError as e:
+        error_resp = handle_exception(e)
+        raise HTTPException(status_code=503, detail=error_resp)
+    
+    # Only allow starting if no brew or brew is completed/error
+    if cur_brew is None or cur_brew.status in (BrewState.COMPLETED, BrewState.ERROR):
         new_id = str(uuid.uuid4())
         
         # Use defaults from config if request is None
@@ -311,9 +436,14 @@ async def start_brew(req: StartBrewRequest | None = None):
         # start scale read and brew tasks
         asyncio.create_task(collect_scale_data_task(cur_brew.id, COLDBREW_SCALE_READ_INTERVAL))
         asyncio.create_task(brew_step_task(new_id, strategy))
-        return {"status": "started", "brew_id": cur_brew.id}
+        return StartBrewResponse(status="started", brew_id=cur_brew.id)
     else:
-        raise HTTPException(status_code=409, detail="brew already in progress")
+        # This should not be reached due to earlier check, but just in case
+        error_resp = handle_exception(
+            BrewConflictError(cur_brew.id if cur_brew else "unknown"),
+            brew_id=cur_brew.id if cur_brew else None
+        )
+        raise HTTPException(status_code=409, detail=error_resp)
 
 @app.post("/api/brew/stop")
 async def stop_brew(brew_id: Annotated[MatchBrewId, Query()]):
@@ -510,30 +640,30 @@ async def websocket_brew_status(websocket: WebSocket):
         ws_manager.disconnect(websocket)
 
 
-@app.post("/api/brew/pause")
+@app.post("/api/brew/pause", response_model=BrewCommandResponse)
 async def pause_brew():
     """Pause the current brew."""
     global cur_brew
     if cur_brew is not None and cur_brew.status == BrewState.BREWING:
         cur_brew.status = BrewState.PAUSED
         logger.info("Brew paused")
-        return {"status": "paused", "brew_state": cur_brew.status.value}
+        return BrewCommandResponse(status="paused", brew_state=cur_brew.status)
     elif cur_brew is not None and cur_brew.status == BrewState.PAUSED:
-        return {"status": "already paused", "brew_state": cur_brew.status.value}
+        return BrewCommandResponse(status="already paused", brew_state=cur_brew.status)
     else:
         raise HTTPException(status_code=400, detail="no brew in progress or already completed")
 
 
-@app.post("/api/brew/resume")
+@app.post("/api/brew/resume", response_model=BrewCommandResponse)
 async def resume_brew():
     """Resume a paused brew."""
     global cur_brew
     if cur_brew is not None and cur_brew.status == BrewState.PAUSED:
         cur_brew.status = BrewState.BREWING
         logger.info("Brew resumed")
-        return {"status": "resumed", "brew_state": cur_brew.status.value}
+        return BrewCommandResponse(status="resumed", brew_state=cur_brew.status)
     elif cur_brew is not None and cur_brew.status == BrewState.BREWING:
-        return {"status": "already brewing", "brew_state": cur_brew.status.value}
+        return BrewCommandResponse(status="already brewing", brew_state=cur_brew.status)
     else:
         raise HTTPException(status_code=400, detail="no paused brew to resume")
 
@@ -574,7 +704,7 @@ async def release_brew(brew_id: Annotated[MatchBrewId, Query()]):
     return {"status": f"valve brew id ${old_id} released"}  # Placeholder response
 
 
-@app.post("/api/brew/kill")
+@app.post("/api/brew/kill", response_model=BrewCommandResponse)
 async def kill_brew():
     """Forcefully kill the current brew."""
     global cur_brew
@@ -585,13 +715,13 @@ async def kill_brew():
         valve.return_to_start()
         valve.release()
         scale.disconnect()
-        return {"status": "killed", "brew_id": old_id}
+        return BrewCommandResponse(status="killed", brew_id=old_id, brew_state=BrewState.IDLE)
     else:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="no brew in progress")
 
 
 # TODO maybe not needed? might be better to just use the status end point
-@app.get("/api/brew/flow_rate")
+@app.get("/api/brew/flow_rate", response_model=FlowRateResponse)
 def read_flow_rate():
     """Read the current flow rate from the time series."""
     global cur_brew
@@ -601,7 +731,7 @@ def read_flow_rate():
         flow_rate = time_series.calculate_flow_rate_from_derivatives(readings) if readings else None
     else:
         flow_rate = time_series.get_current_flow_rate()
-    return {"brew_id": cur_brew.id if cur_brew else None, "flow_rate": flow_rate}
+    return FlowRateResponse(brew_id=cur_brew.id if cur_brew else None, flow_rate=flow_rate)
 
 
 @app.post("/api/brew/valve/forward")

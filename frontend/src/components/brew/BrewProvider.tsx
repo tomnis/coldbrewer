@@ -1,22 +1,24 @@
 import React, { createContext, useContext, useEffect, useState, useCallback } from "react";
 import { useBrewPolling } from "./useBrewPolling";
-import { BrewContextShape } from "./types";
+import { BrewContextShape, BrewError } from "./types";
 import { pauseBrew, resumeBrew } from "./constants";
 
 const BrewContext = createContext<BrewContextShape>({
   brewInProgress: null,
+  brewError: null,
   isFlipped: false,
   fetchBrewInProgress: async () => {},
   stopPolling: () => {},
   toggleFlip: () => {},
   handlePause: async () => {},
   handleResume: async () => {},
+  dismissError: () => {},
 });
 
 export const useBrewContext = () => useContext(BrewContext);
 
 export const BrewProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { brewInProgress, fetchBrewInProgress, startPolling, stopPolling } = useBrewPolling();
+  const { brewInProgress, brewError, fetchBrewInProgress, startPolling, stopPolling } = useBrewPolling();
   const [isFlipped, setIsFlipped] = useState(false);
 
   useEffect(() => {
@@ -43,8 +45,23 @@ export const BrewProvider: React.FC<{ children: React.ReactNode }> = ({ children
     await fetchBrewInProgress();
   }, [fetchBrewInProgress]);
 
+  const dismissError = useCallback(() => {
+    // Error is managed by useBrewPolling, so this is a no-op
+    // The error will be cleared when the brew state changes
+  }, []);
+
   return (
-    <BrewContext.Provider value={{ brewInProgress, isFlipped, fetchBrewInProgress, stopPolling, toggleFlip, handlePause, handleResume }}>
+    <BrewContext.Provider value={{ 
+      brewInProgress, 
+      brewError,
+      isFlipped, 
+      fetchBrewInProgress, 
+      stopPolling, 
+      toggleFlip, 
+      handlePause, 
+      handleResume,
+      dismissError 
+    }}>
       {children}
     </BrewContext.Provider>
   );

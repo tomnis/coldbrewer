@@ -474,7 +474,6 @@ coldbrewer/
 │   │   │   └── pi/            # Hardware implementations
 │   │   │       ├── LunarScale.py
 │   │   │       └── MotorKitValve.py
-│   │   └── appserver/         # Standalone client (optional)
 │   └── tests/                 # Backend tests
 │
 ├── frontend/

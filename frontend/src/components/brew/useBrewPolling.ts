@@ -1,6 +1,6 @@
 import { useRef, useState, useCallback, useEffect } from "react";
 import { wsUrl } from "./constants";
-import { BrewInProgress } from "./types";
+import { BrewInProgress, BrewError } from "./types";
 
 // Reconnection delay settings
 const RECONNECT_DELAY_MS = 1000;
@@ -8,6 +8,7 @@ const MAX_RECONNECT_DELAY_MS = 30000;
 
 export function useBrewPolling() {
   const [brewInProgress, setBrewInProgress] = useState<BrewInProgress | null>(null);
+  const [brewError, setBrewError] = useState<BrewError | null>(null);
 
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectTimeoutRef = useRef<number | null>(null);
@@ -32,6 +33,40 @@ export function useBrewPolling() {
       try {
         const data = JSON.parse(event.data);
         setBrewInProgress(data);
+        
+        // Check if the brew is in error state
+        if (data.brew_state === "error") {
+          // The error info can come from either error_message directly or from 
+          // the enhanced error response format
+          if (data.error) {
+            // Enhanced error response from backend
+            setBrewError({
+              error: data.error || data.error_message || "An error occurred",
+              error_detailed: data.error_detailed,
+              category: data.category || "brew",
+              severity: data.severity || "error",
+              timestamp: data.timestamp || new Date().toISOString(),
+              retryable: data.retryable ?? true,
+              brew_id: data.brew_id,
+              recovery_suggestion: data.recovery_suggestion,
+              exception_type: data.exception_type,
+            });
+          } else {
+            // Legacy error message format
+            setBrewError({
+              error: data.error_message || "An error occurred",
+              category: "brew",
+              severity: "error",
+              timestamp: new Date().toISOString(),
+              retryable: true,
+              brew_id: data.brew_id,
+              recovery_suggestion: "Try restarting the brew or check the system status.",
+            });
+          }
+        } else {
+          // Clear error when not in error state
+          setBrewError(null);
+        }
       } catch (e) {
         console.error("Failed to parse WebSocket message:", e);
       }
@@ -78,6 +113,7 @@ export function useBrewPolling() {
   const stopPolling = useCallback(() => {
     disconnect();
     setBrewInProgress(null);
+    setBrewError(null);
   }, [disconnect]);
 
   // Cleanup on unmount
@@ -95,5 +131,5 @@ export function useBrewPolling() {
     }
   }, [connect]);
 
-  return { brewInProgress, fetchBrewInProgress, startPolling, stopPolling };
+  return { brewInProgress, brewError, fetchBrewInProgress, startPolling, stopPolling };
 }
