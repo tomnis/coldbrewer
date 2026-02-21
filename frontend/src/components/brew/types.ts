@@ -39,5 +39,7 @@ export type BrewContextShape = {
   toggleFlip: () => void;
   handlePause: () => Promise<void>;
   handleResume: () => Promise<void>;
+  handleNudgeOpen: () => Promise<void>;
+  handleNudgeClose: () => Promise<void>;
   dismissError: () => void;
 };

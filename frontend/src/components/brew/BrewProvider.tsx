@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useEffect, useState, useCallback } from "react";
 import { useBrewPolling } from "./useBrewPolling";
-import { BrewContextShape, BrewError } from "./types";
-import { pauseBrew, resumeBrew } from "./constants";
+import { BrewContextShape } from "./types";
+import { pauseBrew, resumeBrew, nudgeOpen, nudgeClose } from "./constants";
 
 const BrewContext = createContext<BrewContextShape>({
   brewInProgress: null,
@@ -12,6 +12,8 @@ const BrewContext = createContext<BrewContextShape>({
   toggleFlip: () => {},
   handlePause: async () => {},
   handleResume: async () => {},
+  handleNudgeOpen: async () => {},
+  handleNudgeClose: async () => {},
   dismissError: () => {},
 });
 
@@ -45,6 +47,16 @@ export const BrewProvider: React.FC<{ children: React.ReactNode }> = ({ children
     await fetchBrewInProgress();
   }, [fetchBrewInProgress]);
 
+  const handleNudgeOpen = useCallback(async () => {
+    await nudgeOpen();
+    await fetchBrewInProgress();
+  }, [fetchBrewInProgress]);
+
+  const handleNudgeClose = useCallback(async () => {
+    await nudgeClose();
+    await fetchBrewInProgress();
+  }, [fetchBrewInProgress]);
+
   const dismissError = useCallback(() => {
     // Error is managed by useBrewPolling, so this is a no-op
     // The error will be cleared when the brew state changes
@@ -60,6 +72,8 @@ export const BrewProvider: React.FC<{ children: React.ReactNode }> = ({ children
       toggleFlip, 
       handlePause, 
       handleResume,
+      handleNudgeOpen,
+      handleNudgeClose,
       dismissError 
     }}>
       {children}

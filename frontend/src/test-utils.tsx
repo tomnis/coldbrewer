@@ -6,12 +6,16 @@ import { BrewInProgress } from './components/brew/types';
 // Default mock context values
 export const defaultMockContext: BrewContextShape = {
   brewInProgress: null,
+  brewError: null,
   isFlipped: false,
   fetchBrewInProgress: async () => {},
   stopPolling: () => {},
   toggleFlip: () => {},
   handlePause: async () => {},
   handleResume: async () => {},
+  handleNudgeOpen: async () => {},
+  handleNudgeClose: async () => {},
+  dismissError: () => {},
 };
 
 // Create a mock context

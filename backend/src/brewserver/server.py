@@ -749,6 +749,60 @@ def step_backward(brew_id: Annotated[MatchBrewId, Query()]):
     return {"status": f"stepped backward 1 step"}
 
 
+# Rate limiting for nudge controls
+import threading
+
+_nudge_last_call_time: float = 0.0
+NUDGE_MIN_INTERVAL_SECONDS: float = 2.0  # Minimum time between nudges to prevent motor damage
+_nudge_lock = threading.Lock()
+
+
+@app.post("/api/brew/nudge/open", response_model=BrewCommandResponse)
+async def nudge_open():
+    """Move valve one step open, bypassing strategy (with rate limiting)."""
+    global cur_brew, _nudge_last_call_time
+    
+    if cur_brew is None or cur_brew.status != BrewState.BREWING:
+        raise HTTPException(status_code=400, detail="no active brew in progress")
+    
+    with _nudge_lock:
+        current_time = time.time()
+        if current_time - _nudge_last_call_time < NUDGE_MIN_INTERVAL_SECONDS:
+            raise HTTPException(
+                status_code=429, 
+                detail=f"nudge too frequent, wait {NUDGE_MIN_INTERVAL_SECONDS} seconds"
+            )
+        _nudge_last_call_time = current_time
+    
+    logger.info(f"Nudge open for brew {cur_brew.id}")
+    valve.step_forward()
+    time.sleep(0.1)
+    return BrewCommandResponse(status="nudged_open", brew_id=cur_brew.id, brew_state=cur_brew.status)
+
+
+@app.post("/api/brew/nudge/close", response_model=BrewCommandResponse)
+async def nudge_close():
+    """Move valve one step closed, bypassing strategy (with rate limiting)."""
+    global cur_brew, _nudge_last_call_time
+    
+    if cur_brew is None or cur_brew.status != BrewState.BREWING:
+        raise HTTPException(status_code=400, detail="no active brew in progress")
+    
+    with _nudge_lock:
+        current_time = time.time()
+        if current_time - _nudge_last_call_time < NUDGE_MIN_INTERVAL_SECONDS:
+            raise HTTPException(
+                status_code=429, 
+                detail=f"nudge too frequent, wait {NUDGE_MIN_INTERVAL_SECONDS} seconds"
+            )
+        _nudge_last_call_time = current_time
+    
+    logger.info(f"Nudge close for brew {cur_brew.id}")
+    valve.step_backward()
+    time.sleep(0.1)
+    return BrewCommandResponse(status="nudged_closed", brew_id=cur_brew.id, brew_state=cur_brew.status)
+
+
 
 #---- ui endpoints ----#
 # for react assets

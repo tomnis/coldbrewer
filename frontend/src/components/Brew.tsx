@@ -1,11 +1,12 @@
 // typescript
-import { Button, Container, Stack, HStack } from "@chakra-ui/react";
+import { Button, Container, Stack } from "@chakra-ui/react";
 import { BrewProvider, useBrewContext } from "./brew/BrewProvider";
 import StartBrew from "./brew/StartBrew";
 import CancelBrew from "./brew/CancelBrew";
 import PauseResumeButton from "./brew/PauseResumeButton";
 import FlipCard from "./brew/FlipCard";
 import { ValveGauge } from "./brew/ValveGauge";
+import NudgeButtons from "./brew/NudgeButtons";
 
 function formatTimeRemaining(seconds: number | null): string {
   if (seconds === null || seconds < 0) return "null";
@@ -185,6 +186,7 @@ function BrewInner() {
           <>
             <PauseResumeButton />
             <CancelBrew />
+            <NudgeButtons />
           </>
         )}
       </div>
