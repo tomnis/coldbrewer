@@ -8,6 +8,11 @@ export const wsUrl = () => {
   return api.replace('/api', '').replace('http://', 'ws://').replace('https://', 'wss://');
 };
 
+// WebSocket URL for health status updates
+export const healthWsUrl = () => {
+  return `${wsUrl()}/ws/health`;
+};
+
 export const DEFAULT_FLOW = "0.05";
 export const DEFAULT_VALVE_INTERVAL = "90";
 export const DEFAULT_EPSILON = "0.008";

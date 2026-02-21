@@ -36,3 +36,10 @@ COLDBREW_VESSEL_WEIGHT_GRAMS = int(os.environ.get('COLDBREW_VESSEL_WEIGHT_GRAMS'
 
 
 COLDBREW_FRONTEND_API_URL= os.getenv("COLDBREW_FRONTEND_API_URL", 'http://localhost:8000/api')
+
+
+# ===== scale reconnection configuration =====
+COLDBREW_SCALE_RECONNECT_RETRIES = int(os.environ.get('COLDBREW_SCALE_RECONNECT_RETRIES', '5'))
+COLDBREW_SCALE_RECONNECT_BASE_DELAY = float(os.environ.get('COLDBREW_SCALE_RECONNECT_BASE_DELAY', '1.0'))
+COLDBREW_SCALE_RECONNECT_MAX_DELAY = float(os.environ.get('COLDBREW_SCALE_RECONNECT_MAX_DELAY', '30.0'))
+# ===== end scale reconnection configuration =====

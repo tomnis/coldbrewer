@@ -8,9 +8,10 @@ import { BrewInProgress } from './types';
 
 // Mock Chakra UI components
 vi.mock('@chakra-ui/react', () => ({
-  Button: ({ children, onClick, ...props }: { 
+  Button: ({ children, onClick, colorScheme, ...props }: { 
     children: React.ReactNode; 
     onClick?: () => void;
+    colorScheme?: string;
     [key: string]: unknown;
   }) => (
     <button onClick={onClick} {...props}>

@@ -1,6 +1,7 @@
 import { Heading, Flex } from "@chakra-ui/react";
 import { useTheme } from "./theme/ThemeContext";
 import { themes } from "./theme/themes";
+import ConnectionStatus from "./ConnectionStatus";
 
 const Header = () => {
   const { themeId, setThemeId } = useTheme();
@@ -47,9 +48,7 @@ const Header = () => {
         justify={{ base: "center", md: "flex-end" }}
         flexWrap="wrap"
       >
-        <span className="terminal-glow" style={{ fontSize: '0.9em' }} aria-hidden="true">
-          [System Online]
-        </span>
+        <ConnectionStatus />
         <select
           className="theme-select"
           value={themeId}

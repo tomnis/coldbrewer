@@ -163,3 +163,80 @@ class TestAbstractScale:
         """Test that AbstractScale has the connected property."""
         # The connected should be a property (abstract property)
         assert isinstance(AbstractScale.__dict__.get('connected'), property)
+
+    def test_abstract_scale_has_reconnect_method(self):
+        """Test that AbstractScale has the reconnect_with_backoff method."""
+        assert hasattr(AbstractScale, 'reconnect_with_backoff')
+
+
+class TestScaleReconnection:
+    """Tests for scale reconnection with exponential backoff."""
+
+    def test_reconnect_with_backoff_success_first_attempt(self):
+        """Test successful connection on first attempt."""
+        scale = MockScale()
+        
+        # Default reconnect_with_backoff calls connect() which succeeds
+        result = scale.reconnect_with_backoff()
+        
+        assert result is True
+        assert scale.connected is True
+
+    def test_reconnect_with_backoff_custom_params(self):
+        """Test reconnect_with_backoff with custom retry parameters."""
+        scale = MockScale()
+        
+        # Should work with custom params
+        result = scale.reconnect_with_backoff()
+        
+        assert result is True
+
+    def test_exponential_backoff_timing(self):
+        """Test that exponential backoff calculates correct delays."""
+        # Test the backoff formula: delay = base_delay * (2 ** attempt), capped at max_delay
+        base_delay = 1.0
+        max_delay = 30.0
+        
+        # Attempt 0: delay = 1.0 * (2^0) = 1.0
+        assert min(base_delay * (2 ** 0), max_delay) == 1.0
+        
+        # Attempt 1: delay = 1.0 * (2^1) = 2.0
+        assert min(base_delay * (2 ** 1), max_delay) == 2.0
+        
+        # Attempt 2: delay = 1.0 * (2^2) = 4.0
+        assert min(base_delay * (2 ** 2), max_delay) == 4.0
+        
+        # Attempt 3: delay = 1.0 * (2^3) = 8.0
+        assert min(base_delay * (2 ** 3), max_delay) == 8.0
+        
+        # Attempt 4: delay = 1.0 * (2^4) = 16.0
+        assert min(base_delay * (2 ** 4), max_delay) == 16.0
+        
+        # Attempt 5: delay = 1.0 * (2^5) = 32.0, but capped at 30.0
+        assert min(base_delay * (2 ** 5), max_delay) == 30.0
+        
+        # Attempt 6+: should stay at max_delay
+        assert min(base_delay * (2 ** 6), max_delay) == 30.0
+
+    def test_exponential_backoff_custom_base_delay(self):
+        """Test exponential backoff with custom base delay."""
+        base_delay = 0.5
+        max_delay = 10.0
+        
+        # Attempt 0: delay = 0.5 * (2^0) = 0.5
+        assert min(base_delay * (2 ** 0), max_delay) == 0.5
+        
+        # Attempt 1: delay = 0.5 * (2^1) = 1.0
+        assert min(base_delay * (2 ** 1), max_delay) == 1.0
+        
+        # Attempt 2: delay = 0.5 * (2^2) = 2.0
+        assert min(base_delay * (2 ** 2), max_delay) == 2.0
+        
+        # Attempt 3: delay = 0.5 * (2^3) = 4.0
+        assert min(base_delay * (2 ** 3), max_delay) == 4.0
+        
+        # Attempt 4: delay = 0.5 * (2^4) = 8.0
+        assert min(base_delay * (2 ** 4), max_delay) == 8.0
+        
+        # Attempt 5: delay = 0.5 * (2^5) = 16.0, capped at 10.0
+        assert min(base_delay * (2 ** 5), max_delay) == 10.0

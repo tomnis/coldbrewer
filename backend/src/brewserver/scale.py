@@ -44,6 +44,18 @@ class AbstractScale(ABC):
         """Get the battery percentage of the scale."""
         pass
 
+    def reconnect_with_backoff(self) -> bool:
+        """
+        Connect to the scale with exponential backoff retry logic.
+        
+        Override this in subclasses to implement specific retry behavior.
+        Default implementation just calls connect() once.
+        
+        Returns True if connection was successful, False otherwise.
+        """
+        self.connect()
+        return self.connected
+
 
 
 class MockScale(AbstractScale):

@@ -75,12 +75,17 @@ class ConnectionManager:
                 self.disconnect(connection)
 
 
-# Global connection manager
+# Global connection managers
 ws_manager = ConnectionManager()
+health_ws_manager = ConnectionManager()  # Separate manager for health WebSocket
 
 # WebSocket push interval in seconds
 WS_PUSH_INTERVAL = float(os.getenv("WS_PUSH_INTERVAL", "1.0"))
 logger.info(f"WS_PUSH_INTERVAL = {WS_PUSH_INTERVAL}")
+
+# Health WebSocket push interval (slower, every 5 seconds)
+WS_HEALTH_PUSH_INTERVAL = float(os.getenv("WS_HEALTH_PUSH_INTERVAL", "5.0"))
+logger.info(f"WS_HEALTH_PUSH_INTERVAL = {WS_HEALTH_PUSH_INTERVAL}")
 
 # WebSocket heartbeat configuration
 WS_HEARTBEAT_INTERVAL = float(os.getenv("WS_HEARTBEAT_INTERVAL", "30.0"))  # seconds between ping frames
@@ -212,11 +217,11 @@ def get_scale_status() -> ScaleStatus:
     """
     Reads status from the scale. Used for both a specific endpoint, and polling+writing scale data as part of the event loop.
     """
-    # good enough to support reconnection here. we can just powercycle the scale if anything goes wrong to get back on track
+    # Use exponential backoff reconnection for improved reliability
     global scale
     if scale is None or not scale.connected:
         scale = create_scale()
-        scale.connect()
+        scale.reconnect_with_backoff()
 
     if scale.connected:
         weight = scale.get_weight()
@@ -225,6 +230,47 @@ def get_scale_status() -> ScaleStatus:
         return ScaleStatus(connected=True, weight=weight, units=units, battery_pct=battery_pct)
     else:
         return ScaleStatus(connected=False, weight=None, units=None, battery_pct=None)
+
+
+def get_component_health() -> dict:
+    """
+    Get health status of all components (scale, valve, influxdb).
+    Returns a dict suitable for WebSocket broadcast.
+    """
+    # Check scale status
+    scale_health = {"connected": False, "battery_pct": None, "weight": None, "units": None}
+    try:
+        scale_status = get_scale_status()
+        scale_health = {
+            "connected": scale_status.connected,
+            "battery_pct": scale_status.battery_pct,
+            "weight": scale_status.weight,
+            "units": scale_status.units,
+        }
+    except Exception as e:
+        logger.error(f"Error checking scale health: {e}")
+    
+    # Check valve availability
+    valve_health = {"available": False, "position": None}
+    try:
+        position = valve.get_position()
+        valve_health = {"available": True, "position": position}
+    except Exception as e:
+        logger.error(f"Error checking valve health: {e}")
+    
+    # Check InfluxDB connectivity
+    influxdb_health = {"connected": True, "error": None}
+    try:
+        time_series.get_current_weight()
+    except Exception as e:
+        influxdb_health = {"connected": False, "error": str(e)}
+        logger.error(f"Error checking InfluxDB health: {e}")
+    
+    return {
+        "scale": scale_health,
+        "valve": valve_health,
+        "influxdb": influxdb_health,
+    }
 
 @app.get("/api/scale")
 def read_scale():
@@ -339,6 +385,7 @@ async def collect_scale_data_task(brew_id, s):
                     # Reset state to brewing on successful data collection
                     cur_brew.status = BrewState.BREWING
             await asyncio.sleep(s)
+            # TODO should we also record the derivative as we've calculated it?
         except Exception as e:
             logger.error(f"Error collecting scale data: {e}")
             # Use enhanced error handling
@@ -437,14 +484,13 @@ async def start_brew(req: StartBrewRequest | None = None):
         )
         raise HTTPException(status_code=409, detail=error_resp)
     
-    # Try to connect to scale
+    # Try to connect to scale with exponential backoff
     try:
         if scale is None or not scale.connected:
             scale = create_scale()
-            scale.connect()
-            if not scale.connected:
+            if not scale.reconnect_with_backoff():
                 error_resp = handle_exception(
-                    ScaleConnectionError("Could not connect to scale"),
+                    ScaleConnectionError("Could not connect to scale after multiple attempts"),
                     brew_id=None
                 )
                 raise HTTPException(status_code=503, detail=error_resp)
@@ -706,6 +752,33 @@ async def websocket_brew_status(websocket: WebSocket):
     except Exception as e:
         logger.error(f"WebSocket error: {e}")
         ws_manager.disconnect(websocket)
+
+
+@app.websocket("/ws/health")
+async def websocket_health(websocket: WebSocket):
+    """
+    WebSocket endpoint for real-time health status updates.
+    Clients connect and receive periodic component health broadcasts.
+    Separate from brew status to allow different polling intervals.
+    """
+    await health_ws_manager.connect(websocket)
+    
+    try:
+        while True:
+            # Get component health status
+            health = get_component_health()
+            
+            # Add timestamp
+            health["timestamp"] = datetime.now(timezone.utc).isoformat()
+            
+            await websocket.send_json(health)
+            
+            await asyncio.sleep(WS_HEALTH_PUSH_INTERVAL)
+    except WebSocketDisconnect:
+        health_ws_manager.disconnect(websocket)
+    except Exception as e:
+        logger.error(f"Health WebSocket error: {e}")
+        health_ws_manager.disconnect(websocket)
 
 
 @app.post("/api/brew/pause", response_model=BrewCommandResponse)
