@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 import math
-from typing import Tuple, Optional, Dict, Any, Type
+from typing import Tuple, Optional, Dict, Any, Type, Union
 
 from config import *
 from model import *
@@ -8,6 +8,35 @@ from model import *
 
 # Strategy Registry
 BREW_STRATEGY_REGISTRY: Dict[BrewStrategyType, Type["AbstractBrewStrategy"]] = {}
+
+
+def _extract_float(value: Any, default: float) -> float:
+    """
+    Extract a float from a value that might be a sequence (list/tuple) or already a number.
+    
+    If value is a sequence, extracts the first element.
+    If value is already a number (int/float), returns it directly.
+    Otherwise, returns the default.
+    """
+    if value is None:
+        return default
+    
+    # If it's already a number, return it
+    if isinstance(value, (int, float)):
+        return float(value)
+    
+    # If it's a sequence (list/tuple), extract first element
+    if isinstance(value, (list, tuple)) and len(value) > 0:
+        first = value[0]
+        if isinstance(first, (int, float)):
+            return float(first)
+    
+    # Log warning and return default
+    import logging
+    logging.getLogger(__name__).warning(
+        f"Could not extract float from {type(value).__name__}: {value}, using default: {default}"
+    )
+    return default
 
 
 def register_strategy(strategy_type: BrewStrategyType):
@@ -172,21 +201,29 @@ class PIDBrewStrategy(AbstractBrewStrategy):
     @classmethod
     def from_params(cls, strategy_params: Dict[str, Any], base_params: Dict[str, Any]) -> "PIDBrewStrategy":
         return PIDBrewStrategy(
-            target_flow_rate=base_params.get("target_flow_rate", COLDBREW_TARGET_FLOW_RATE),
-            scale_interval=base_params.get("scale_interval", COLDBREW_SCALE_READ_INTERVAL),
-            valve_interval=base_params.get("valve_interval", COLDBREW_VALVE_INTERVAL_SECONDS),
-            target_weight=base_params.get("target_weight", COLDBREW_TARGET_WEIGHT_GRAMS),
-            vessel_weight=base_params.get("vessel_weight", COLDBREW_VESSEL_WEIGHT_GRAMS),
-            kp=strategy_params.get("kp", 1.0),
-            ki=strategy_params.get("ki", 0.1),
-            kd=strategy_params.get("kd", 0.05),
-            output_min=strategy_params.get("output_min", -10.0),
-            output_max=strategy_params.get("output_max", 10.0),
-            integral_limit=strategy_params.get("integral_limit", 100.0),
+            target_flow_rate=float(base_params.get("target_flow_rate", COLDBREW_TARGET_FLOW_RATE)),
+            scale_interval=float(base_params.get("scale_interval", COLDBREW_SCALE_READ_INTERVAL)),
+            valve_interval=float(base_params.get("valve_interval", COLDBREW_VALVE_INTERVAL_SECONDS)),
+            target_weight=float(base_params.get("target_weight", COLDBREW_TARGET_WEIGHT_GRAMS)),
+            vessel_weight=float(base_params.get("vessel_weight", COLDBREW_VESSEL_WEIGHT_GRAMS)),
+            kp=_extract_float(strategy_params.get("kp"), 1.0),
+            ki=_extract_float(strategy_params.get("ki"), 0.1),
+            kd=_extract_float(strategy_params.get("kd"), 0.05),
+            output_min=_extract_float(strategy_params.get("output_min"), -10.0),
+            output_max=_extract_float(strategy_params.get("output_max"), 10.0),
+            integral_limit=_extract_float(strategy_params.get("integral_limit"), 100.0),
         )
 
     def _compute_pid(self, error: float, dt: float) -> float:
         """Compute PID output."""
+        # Validate that gains are numeric (not sequences) to prevent cryptic errors
+        if not isinstance(self.kp, (int, float)):
+            raise TypeError(f"kp must be a number, got {type(self.kp).__name__}: {self.kp}")
+        if not isinstance(self.ki, (int, float)):
+            raise TypeError(f"ki must be a number, got {type(self.ki).__name__}: {self.ki}")
+        if not isinstance(self.kd, (int, float)):
+            raise TypeError(f"kd must be a number, got {type(self.kd).__name__}: {self.kd}")
+        
         # Proportional term
         p_term = self.kp * error
         
@@ -611,27 +648,27 @@ class AdaptiveGainSchedulingBrewStrategy(AbstractBrewStrategy):
             target_weight=base_params.get("target_weight", COLDBREW_TARGET_WEIGHT_GRAMS),
             vessel_weight=base_params.get("vessel_weight", COLDBREW_VESSEL_WEIGHT_GRAMS),
             
-            kp_low=strategy_params.get("kp_low", 0.5),
-            ki_low=strategy_params.get("ki_low", 0.05),
-            kd_low=strategy_params.get("kd_low", 0.02),
+            kp_low=_extract_float(strategy_params.get("kp_low"), 0.5),
+            ki_low=_extract_float(strategy_params.get("ki_low"), 0.05),
+            kd_low=_extract_float(strategy_params.get("kd_low"), 0.02),
             
-            kp_med=strategy_params.get("kp_med", 1.5),
-            ki_med=strategy_params.get("ki_med", 0.15),
-            kd_med=strategy_params.get("kd_med", 0.08),
+            kp_med=_extract_float(strategy_params.get("kp_med"), 1.5),
+            ki_med=_extract_float(strategy_params.get("ki_med"), 0.15),
+            kd_med=_extract_float(strategy_params.get("kd_med"), 0.08),
             
-            kp_high=strategy_params.get("kp_high", 2.5),
-            ki_high=strategy_params.get("ki_high", 0.25),
-            kd_high=strategy_params.get("kd_high", 0.1),
+            kp_high=_extract_float(strategy_params.get("kp_high"), 2.5),
+            ki_high=_extract_float(strategy_params.get("ki_high"), 0.25),
+            kd_high=_extract_float(strategy_params.get("kd_high"), 0.1),
             
-            flow_rate_low_threshold=strategy_params.get("flow_rate_low_threshold", 0.03),
-            flow_rate_high_threshold=strategy_params.get("flow_rate_high_threshold", 0.07),
+            flow_rate_low_threshold=_extract_float(strategy_params.get("flow_rate_low_threshold"), 0.03),
+            flow_rate_high_threshold=_extract_float(strategy_params.get("flow_rate_high_threshold"), 0.07),
             
             adaptation_enabled=strategy_params.get("adaptation_enabled", True),
-            adaptation_rate=strategy_params.get("adaptation_rate", 0.01),
+            adaptation_rate=_extract_float(strategy_params.get("adaptation_rate"), 0.01),
             
-            output_min=strategy_params.get("output_min", -10.0),
-            output_max=strategy_params.get("output_max", 10.0),
-            integral_limit=strategy_params.get("integral_limit", 100.0),
+            output_min=_extract_float(strategy_params.get("output_min"), -10.0),
+            output_max=_extract_float(strategy_params.get("output_max"), 10.0),
+            integral_limit=_extract_float(strategy_params.get("integral_limit"), 100.0),
         )
 
     def _determine_region(self, flow_rate: float) -> str:
@@ -861,17 +898,17 @@ class SmithPredictorAdvancedBrewStrategy(AbstractBrewStrategy):
             valve_interval=base_params.get("valve_interval", COLDBREW_VALVE_INTERVAL_SECONDS),
             target_weight=base_params.get("target_weight", COLDBREW_TARGET_WEIGHT_GRAMS),
             vessel_weight=base_params.get("vessel_weight", COLDBREW_VESSEL_WEIGHT_GRAMS),
-            kp=strategy_params.get("kp", 1.0),
-            ki=strategy_params.get("ki", 0.05),
-            kd=strategy_params.get("kd", 0.1),
-            dead_time=strategy_params.get("dead_time", 45.0),
-            plant_gain=strategy_params.get("plant_gain", 0.005),
-            plant_time_constant=strategy_params.get("plant_time_constant", 15.0),
-            q=strategy_params.get("q", 0.0005),
-            r=strategy_params.get("r", 0.15),
-            output_min=strategy_params.get("output_min", -10.0),
-            output_max=strategy_params.get("output_max", 10.0),
-            integral_limit=strategy_params.get("integral_limit", 100.0),
+            kp=_extract_float(strategy_params.get("kp"), 1.0),
+            ki=_extract_float(strategy_params.get("ki"), 0.05),
+            kd=_extract_float(strategy_params.get("kd"), 0.1),
+            dead_time=_extract_float(strategy_params.get("dead_time"), 45.0),
+            plant_gain=_extract_float(strategy_params.get("plant_gain"), 0.005),
+            plant_time_constant=_extract_float(strategy_params.get("plant_time_constant"), 15.0),
+            q=_extract_float(strategy_params.get("q"), 0.0005),
+            r=_extract_float(strategy_params.get("r"), 0.15),
+            output_min=_extract_float(strategy_params.get("output_min"), -10.0),
+            output_max=_extract_float(strategy_params.get("output_max"), 10.0),
+            integral_limit=_extract_float(strategy_params.get("integral_limit"), 100.0),
         )
 
     def _update_plant_model(self, valve_command: float, dt: float):
@@ -899,6 +936,14 @@ class SmithPredictorAdvancedBrewStrategy(AbstractBrewStrategy):
 
     def _compute_pid(self, error: float, dt: float) -> float:
         """Compute PID output."""
+        # Validate that gains are numeric (not sequences) to prevent cryptic errors
+        if not isinstance(self.kp, (int, float)):
+            raise TypeError(f"kp must be a number, got {type(self.kp).__name__}: {self.kp}")
+        if not isinstance(self.ki, (int, float)):
+            raise TypeError(f"ki must be a number, got {type(self.ki).__name__}: {self.ki}")
+        if not isinstance(self.kd, (int, float)):
+            raise TypeError(f"kd must be a number, got {type(self.kd).__name__}: {self.kd}")
+        
         # Proportional term
         p_term = self.kp * error
         
@@ -1014,8 +1059,8 @@ class KalmanFilter:
     """
     
     def __init__(self, q: float = 0.001, r: float = 0.1, initial_estimate: float = 0.0, initial_error: float = 1.0):
-        self.q = q  # Process noise covariance
-        self.r = r  # Measurement noise covariance
+        self.q: float = float(q)  # Process noise covariance
+        self.r: float = r  # Measurement noise covariance
         
         self.x: float = initial_estimate  # Current state estimate
         self.p: float = initial_error      # Current estimate error covariance
@@ -1043,14 +1088,17 @@ class KalmanFilter:
         
         # Prediction step: predict current state and error
         # Since we're using a random walk model, x_pred = x_prev
-        x_pred = self.x
-        print("p:", self.p)
-        print("q:", self.q)
-        p_pred = self.p + self.q
-        
+        x_pred: float = self.x
+        logger.info(f"p: {self.p}")
+        logger.info(f"q: {self.q}")
+
+        p_pred = float(self.p) + float(self.q)
+
+        logger.info(f"p_pred: {p_pred}")
+        logger.info(f"r: {self.r}")
         # Update step: incorporate the measurement
         # Kalman gain
-        k = p_pred / (p_pred + self.r)
+        k = p_pred / (float(p_pred) + float(self.r))
         
         # Update state estimate
         self.x = x_pred + k * (measurement - x_pred)
@@ -1134,14 +1182,14 @@ class KalmanPIDBrewStrategy(AbstractBrewStrategy):
             valve_interval=base_params.get("valve_interval", COLDBREW_VALVE_INTERVAL_SECONDS),
             target_weight=base_params.get("target_weight", COLDBREW_TARGET_WEIGHT_GRAMS),
             vessel_weight=base_params.get("vessel_weight", COLDBREW_VESSEL_WEIGHT_GRAMS),
-            kp=strategy_params.get("kp", 1.0),
-            ki=strategy_params.get("ki", 0.05),
-            kd=strategy_params.get("kd", 0.1),
-            q=strategy_params.get("q", 0.0005),
-            r=strategy_params.get("r", 0.15),
-            output_min=strategy_params.get("output_min", -10.0),
-            output_max=strategy_params.get("output_max", 10.0),
-            integral_limit=strategy_params.get("integral_limit", 100.0),
+            kp=_extract_float(strategy_params.get("kp"), 1.0),
+            ki=_extract_float(strategy_params.get("ki"), 0.05),
+            kd=_extract_float(strategy_params.get("kd"), 0.1),
+            q=_extract_float(strategy_params.get("q"), 0.0005),
+            r=_extract_float(strategy_params.get("r"), 0.15),
+            output_min=_extract_float(strategy_params.get("output_min"), -10.0),
+            output_max=_extract_float(strategy_params.get("output_max"), 10.0),
+            integral_limit=_extract_float(strategy_params.get("integral_limit"), 100.0),
         )
 
     def _compute_pid(self, error: float, dt: float) -> float:

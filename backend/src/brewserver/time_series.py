@@ -70,9 +70,9 @@ class InfluxDBTimeSeries(AbstractTimeSeries):
             |> range(start: -10s)\
             |> filter(fn: (r) => r._measurement == "coldbrew" and r._field == "weight_grams")'
         tables = query_api.query(org=self.org, query=query)
-        for table in tables:
-            for record in table.records:
-                logger.info(f"Time: {record.get_time()}, Value: {record.get_value()}")
+        # for table in tables:
+        #     for record in table.records:
+        #         logger.info(f"Time: {record.get_time()}, Value: {record.get_value()}")
 
         # TODO handle empty case
         result = tables[-1].records[-1]
