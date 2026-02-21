@@ -1044,6 +1044,8 @@ class KalmanFilter:
         # Prediction step: predict current state and error
         # Since we're using a random walk model, x_pred = x_prev
         x_pred = self.x
+        print("p:", self.p)
+        print("q:", self.q)
         p_pred = self.p + self.q
         
         # Update step: incorporate the measurement
