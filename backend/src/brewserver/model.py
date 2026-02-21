@@ -46,6 +46,7 @@ class Brew:
     time_started: datetime
     vessel_weight: float
     target_weight: float
+    strategy: BrewStrategyType = BrewStrategyType.DEFAULT
     time_completed: Optional[datetime] = None
     error_message: Optional[str] = None
 
@@ -68,6 +69,7 @@ class StartBrewRequest(BaseModel):
 class BrewStatus(BaseModel):
     brew_id: str
     brew_state: BrewState
+    brew_strategy: BrewStrategyType
     time_started: datetime
     time_completed: Optional[datetime] = None
     target_weight: float
