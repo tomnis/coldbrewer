@@ -178,8 +178,8 @@ class PIDBrewStrategy(AbstractBrewStrategy):
             target_weight=base_params.get("target_weight", COLDBREW_TARGET_WEIGHT_GRAMS),
             vessel_weight=base_params.get("vessel_weight", COLDBREW_VESSEL_WEIGHT_GRAMS),
             kp=strategy_params.get("kp", 1.0),
-            ki=strategy_params.get("ki", 0.05),
-            kd=strategy_params.get("kd", 0.1),
+            ki=strategy_params.get("ki", 0.1),
+            kd=strategy_params.get("kd", 0.05),
             output_min=strategy_params.get("output_min", -10.0),
             output_max=strategy_params.get("output_max", 10.0),
             integral_limit=strategy_params.get("integral_limit", 100.0),
@@ -1017,8 +1017,8 @@ class KalmanFilter:
         self.q = q  # Process noise covariance
         self.r = r  # Measurement noise covariance
         
-        self.x = initial_estimate  # Current state estimate
-        self.p = initial_error      # Current estimate error covariance
+        self.x: float = initial_estimate  # Current state estimate
+        self.p: float = initial_error      # Current estimate error covariance
         self.is_initialized = initial_error < 1e9  # Have we received our first measurement?
     
     def update(self, measurement: float) -> float:
